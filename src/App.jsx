@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, RotateCcw, Trash2, Battery, AlertTriangle, CheckCircle2, Lock, Unlock, ChevronLeft, Repeat, Wrench, Cpu, HelpCircle, Terminal, Sparkles, CircleDot, Settings, Archive, Gamepad2, Timer, RadioReceiver, Star, Hexagon, ShoppingCart } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Play, RotateCcw, Trash2, Battery, AlertTriangle, CheckCircle2, Lock, Unlock, ChevronLeft, Repeat, Wrench, Cpu, HelpCircle, Terminal, Sparkles, CircleDot, Settings, Archive, Gamepad2, Timer, RadioReceiver, Star, Hexagon, ShoppingCart, Info, ChevronRight, X } from 'lucide-react';
 
 // --- MOTOR DE SONIDO (WEB AUDIO API) ---
 const playSound = (type) => {
@@ -155,7 +155,7 @@ const SECTION_6_LEVELS = [
   { id: 56, title: "Nivel 6: Zona de Riesgo", start: { x: 0, y: 5 }, goal: { x: 5, y: 0 }, obstacles: [{x: 1, y: 5}, {x: 2, y: 4}, {x: 3, y: 3}, {x: 4, y: 2}], timeLimit: 12, par: 0 },
   { id: 57, title: "Nivel 7: El Banco de Baterías", start: { x: 0, y: 3 }, goal: { x: 5, y: 3 }, obstacles: [{x:2,y:1},{x:2,y:5}], items: [{x:2,y:0},{x:2,y:2},{x:2,y:4}], laserDoor: {x: 4, y: 3}, timeLimit: 14, par: 0 },
   { id: 58, title: "Nivel 8: Camino Estrecho", start: { x: 0, y: 0 }, goal: { x: 5, y: 5 }, obstacles: [{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1}, {x:1,y:3},{x:2,y:3},{x:3,y:3},{x:4,y:3},{x:5,y:3}], timeLimit: 15, par: 0 },
-  { id: 59, title: "Nivel 9: El Sprint del Capi", start: { x: 0, y: 0 }, goal: { x: 5, y: 0 }, obstacles: [{x:2,y:0}, {x:4,y:0}], items: [{x:2,y:5}], laserDoor: {x: 3, y: 0}, timeLimit: 12, par: 0 },
+  { id: 59, title: "Nivel 9: El Sprint de LogiRom", start: { x: 0, y: 0 }, goal: { x: 5, y: 0 }, obstacles: [{x:2,y:0}, {x:4,y:0}], items: [{x:2,y:5}], laserDoor: {x: 3, y: 0}, timeLimit: 12, par: 0 },
   { id: 60, title: "Nivel 10: Piloto Maestro", start: { x: 0, y: 0 }, goal: { x: 5, y: 5 }, obstacles: [{x:1,y:1},{x:2,y:2},{x:3,y:3},{x:4,y:4}], items: [{x:0,y:5}, {x:5,y:0}], laserDoor: {x: 4, y: 5}, timeLimit: 18, hint: "¡Demuestra tus reflejos para graduarte como Piloto de Drones!", par: 0 }
 ];
 
@@ -179,8 +179,49 @@ const ROBOT_COLORS = [
   { name: 'Corona', bg: 'bg-gradient-to-br from-yellow-300 to-amber-500', border: 'border-amber-300', price: 40, owned: false },
 ];
 
+// --- DIAPOSITIVAS DEL ONBOARDING ---
+const ONBOARDING_SLIDES = [
+  {
+    title: "¡Bienvenido a LogiRom!",
+    desc: "Descubre el fascinante mundo de la programación guiando a tu robot explorador en 60 increíbles misiones.",
+    icon: Sparkles,
+    color: "text-indigo-500",
+    bgIcon: "bg-indigo-100",
+    border: "border-indigo-200"
+  },
+  {
+    title: "Aprende Lógica Real",
+    desc: "Usa secuencias, bucles y sensores. Verás cómo tus instrucciones se traducen a código de C++ (Arduino) en tiempo real.",
+    icon: Terminal,
+    color: "text-emerald-500",
+    bgIcon: "bg-emerald-100",
+    border: "border-emerald-200"
+  },
+  {
+    title: "Gana Recompensas",
+    desc: "Completa los niveles usando la menor cantidad de bloques para ganar 3 estrellas y obtener Tuercas Doradas.",
+    icon: Hexagon,
+    color: "text-amber-500",
+    bgIcon: "bg-amber-100",
+    border: "border-amber-200"
+  },
+  {
+    title: "Personaliza tu Compañero",
+    desc: "Visita la Tienda Premium y usa tus tuercas para desbloquear colores especiales y el legendario módulo Capi-bot.",
+    icon: ShoppingCart,
+    color: "text-rose-500",
+    bgIcon: "bg-rose-100",
+    border: "border-rose-200"
+  }
+];
+
 export default function App() {
-  const [currentView, setCurrentView] = useState('home'); 
+  // Verificamos si es la primera vez que entra a la app revisando el localStorage
+  const [currentView, setCurrentView] = useState(() => {
+    return localStorage.getItem('logirom_has_seen_onboarding') ? 'landing' : 'onboarding';
+  }); 
+  const [currentSlide, setCurrentSlide] = useState(0); // Controla en qué diapositiva vamos
+
   const [currentSection, setCurrentSection] = useState(1);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   
@@ -248,8 +289,16 @@ export default function App() {
   }, [activeCommandIndex, commands, customTrick, lastEvent]);
 
   useEffect(() => {
-    resetLevel();
-  }, [currentLevelIndex, currentSection]);
+    if (currentView === 'game') {
+        resetLevel();
+    }
+  }, [currentLevelIndex, currentSection, currentView]);
+
+  const completeOnboarding = () => {
+    playSound('click');
+    localStorage.setItem('logirom_has_seen_onboarding', 'true');
+    setCurrentView('landing');
+  };
 
   const resetLevel = () => {
     setRobotPos(currentLevels[currentLevelIndex].start);
@@ -428,7 +477,6 @@ export default function App() {
     if (status === 'running' || status === 'victory_screen') return;
     playSound('click');
 
-    // Desplazamiento automático suave hacia el tablero y la terminal
     const boardArea = document.getElementById('game-board-area');
     if (boardArea) {
       boardArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -860,6 +908,124 @@ export default function App() {
     return lines;
   };
 
+  if (currentView === 'onboarding') {
+    const slide = ONBOARDING_SLIDES[currentSlide];
+    const isLast = currentSlide === ONBOARDING_SLIDES.length - 1;
+    const Icon = slide.icon;
+
+    return (
+      <div className="min-h-[100dvh] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-black font-sans flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Decoraciones de fondo premium (Neón difuminado) */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+        
+        {/* Botón de Omitir (Sólo si no es la última) */}
+        {!isLast && (
+           <button 
+             onClick={completeOnboarding}
+             className="absolute top-8 right-8 text-slate-400 hover:text-white font-bold flex items-center gap-1 transition-colors"
+           >
+             Omitir <X size={18}/>
+           </button>
+        )}
+
+        <div className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] p-8 max-w-sm w-[90%] text-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 relative z-10">
+          <div className="flex justify-center mb-6">
+            <div className={`w-24 h-24 ${slide.bgIcon} ${slide.color} border-4 border-white shadow-lg rounded-3xl flex items-center justify-center transform transition-transform hover:scale-105`}>
+               <Icon size={48} />
+            </div>
+          </div>
+          
+          <h2 className={`text-2xl font-black ${slide.color} tracking-tight mb-3`}>{slide.title}</h2>
+          <p className="text-slate-500 font-medium text-sm leading-relaxed mb-8 h-20">
+            {slide.desc}
+          </p>
+
+          {/* Puntos de navegación */}
+          <div className="flex justify-center gap-2 mb-8">
+            {ONBOARDING_SLIDES.map((_, idx) => (
+              <div 
+                key={idx} 
+                className={`h-2 rounded-full transition-all duration-300 ${idx === currentSlide ? 'w-8 bg-indigo-500' : 'w-2 bg-slate-200'}`}
+              />
+            ))}
+          </div>
+
+          <button
+            onClick={() => {
+              playSound('click');
+              if (isLast) {
+                completeOnboarding();
+              } else {
+                setCurrentSlide(prev => prev + 1);
+              }
+            }}
+            className="w-full bg-gradient-to-r from-slate-800 to-slate-900 hover:from-indigo-600 hover:to-purple-700 text-white font-black py-4 rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.1)] transition-all active:scale-95 flex items-center justify-center gap-2 border border-slate-700"
+          >
+            {isLast ? "¡Comenzar la Aventura!" : <>Siguiente <ChevronRight size={20} /></>}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentView === 'landing') {
+    return (
+      <div 
+        className="min-h-[100dvh] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-indigo-950 to-black font-sans flex flex-col items-center justify-center relative overflow-hidden selection:bg-indigo-500/30"
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {/* Decoraciones de fondo premium (Neón difuminado) */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+        
+        {/* Círculo giratorio sutil de fondo */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(99,102,241,0.1)_360deg)] animate-[spin_10s_linear_infinite] pointer-events-none rounded-full"></div>
+
+        <div className="z-10 flex flex-col items-center text-center p-6 max-w-lg w-full">
+          
+          {/* Ícono de entrada animado */}
+          <div className="w-32 h-32 rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_0_50px_rgba(99,102,241,0.2)] flex items-center justify-center text-6xl mb-8 animate-[bounce_4s_ease-in-out_infinite] relative">
+            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 rounded-[2rem]"></div>
+            <span className="drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] z-10">{robotDesign.face.emoji}</span>
+          </div>
+
+          {/* Etiqueta superior */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase mb-6 shadow-sm backdrop-blur-sm">
+            <Sparkles size={14} /> Entorno Educativo
+          </div>
+
+          {/* Título Principal */}
+          <h1 className="text-6xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-200 to-purple-300 mb-6 pb-3 tracking-tight drop-shadow-sm">
+            LogiRom
+          </h1>
+          
+          {/* Subtítulo */}
+          <p className="text-lg sm:text-xl text-slate-400 font-medium mb-12 leading-relaxed px-4">
+            Domina el pensamiento computacional y programa tu propio robot explorador.
+          </p>
+
+          {/* Botón Call to Action */}
+          <button
+            onClick={() => { playSound('click'); setCurrentView('home'); }}
+            className="group relative w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl font-black text-white text-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] active:scale-95 border border-indigo-400/50 overflow-hidden"
+          >
+            {/* Efecto de brillo (shine) al pasar el ratón */}
+            <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12"></div>
+            <span className="relative flex items-center justify-center gap-3 tracking-wide">
+              <Play className="fill-white drop-shadow-md" size={24} /> ENTRAR A LA ACADEMIA
+            </span>
+          </button>
+        </div>
+
+        {/* Footer/Créditos */}
+        <div className="absolute bottom-8 text-slate-500/60 text-xs sm:text-sm font-bold tracking-widest uppercase">
+          Creado por <span className="text-indigo-400/80">Guedson Romario</span>
+        </div>
+      </div>
+    );
+  }
+
   if (currentView === 'workshop') {
     return (
       <div 
@@ -870,7 +1036,7 @@ export default function App() {
           <Hexagon size={20} className="fill-amber-400" /> {coins}
         </div>
 
-        <h1 className="text-4xl font-black mb-2 flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 mt-8 drop-shadow-sm tracking-tight">
+        <h1 className="text-4xl font-black mb-2 flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500 mt-8 drop-shadow-sm tracking-tight pb-2">
           <Wrench size={40} className="text-yellow-400" /> Taller Premium
         </h1>
         <p className="text-slate-400 mb-8 font-medium">Usa tus tuercas doradas para desbloquear tecnología.</p>
@@ -968,6 +1134,54 @@ export default function App() {
     );
   }
 
+  if (currentView === 'about') {
+    return (
+      <div 
+        className="min-h-[100dvh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-slate-100 to-slate-200 font-sans p-4 flex flex-col items-center justify-center selection:bg-indigo-100 relative"
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="bg-white/80 backdrop-blur-2xl rounded-[2rem] p-8 max-w-md w-full shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-white relative overflow-hidden">
+          {/* Elementos decorativos de fondo */}
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-800 mb-6 pb-2 text-center relative z-10 tracking-tight">Sobre el Proyecto</h2>
+          
+          <div className="flex flex-col items-center text-center relative z-10">
+            <div className="w-24 h-24 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full mb-4 shadow-[0_10px_20px_rgba(99,102,241,0.3)] border-4 border-white flex items-center justify-center text-4xl transform transition-transform hover:scale-110 hover:rotate-3 cursor-default">
+              👨‍💻
+            </div>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight leading-tight mb-1">Guedson Romario Quispe Anchaise</h3>
+            <p className="text-indigo-600 font-bold text-sm mb-4 leading-tight">
+              Estudiante de Ingeniería de Sistemas <br/>
+              <span className="text-slate-500 text-[10px] uppercase tracking-widest">Universidad Continental - Sede Arequipa</span>
+            </p>
+            
+            <p className="text-slate-600 text-sm mb-6 leading-relaxed font-medium bg-slate-50/50 p-4 rounded-2xl border border-slate-100 shadow-inner">
+              "LogiRom" es un proyecto educativo diseñado para enseñar a niños los fundamentos del pensamiento computacional y la robótica a través de una interfaz interactiva y código real.
+            </p>
+            
+            <div className="w-full bg-white p-4 rounded-2xl border border-slate-100 mb-8 text-left shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-3">Detalles Técnicos</p>
+                <ul className="text-sm text-slate-600 space-y-2 font-medium">
+                  <li className="flex justify-between"><span>Versión:</span> <span className="font-bold text-slate-800">1.0.0 Premium</span></li>
+                  <li className="flex justify-between"><span>Tecnologías:</span> <span className="font-bold text-slate-800">React & Tailwind CSS</span></li>
+                  <li className="flex justify-between"><span>Lógica Core:</span> <span className="font-bold text-slate-800">C++ Simulado</span></li>
+                </ul>
+            </div>
+            
+            <button
+              onClick={() => { playSound('click'); setCurrentView('home'); }}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 border border-slate-600"
+            >
+              <ChevronLeft size={20} /> Volver al Menú
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const ModuleCard = ({ sectionNum, title, desc, icon: Icon, bgGradient, textClass, ringClass }) => {
     const isExpanded = expandedSection === sectionNum;
     const levels = sectionNum === 1 ? SECTION_1_LEVELS : sectionNum === 2 ? SECTION_2_LEVELS : sectionNum === 3 ? SECTION_3_LEVELS : sectionNum === 4 ? SECTION_4_LEVELS : sectionNum === 5 ? SECTION_5_LEVELS : SECTION_6_LEVELS;
@@ -1039,10 +1253,20 @@ export default function App() {
   if (currentView === 'home') {
     return (
       <div 
-        className="min-h-[100dvh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-slate-100 to-slate-200 font-sans p-4 flex flex-col items-center selection:bg-indigo-100"
+        className="min-h-[100dvh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-slate-100 to-slate-200 font-sans p-4 flex flex-col items-center selection:bg-indigo-100 relative"
         style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(5rem, env(safe-area-inset-bottom))' }}
       >
         
+        {/* Botón de Información del Desarrollador */}
+        <button 
+          onClick={() => { playSound('click'); setCurrentView('about'); }}
+          className="absolute left-4 bg-white/80 hover:bg-white backdrop-blur-md text-indigo-600 p-2.5 rounded-full flex items-center justify-center shadow-[0_4px_14px_0_rgba(99,102,241,0.15)] border border-indigo-100 z-10 transition-all hover:scale-110 active:scale-95" 
+          style={{ top: 'max(1rem, env(safe-area-inset-top))' }}
+          title="Sobre el Proyecto"
+        >
+          <Info size={22} />
+        </button>
+
         <div className="absolute right-4 bg-white/80 backdrop-blur-md text-amber-600 font-black px-5 py-2.5 rounded-full flex items-center gap-2 shadow-[0_4px_14px_0_rgba(251,191,36,0.15)] border border-amber-200 z-10" style={{ top: 'max(1rem, env(safe-area-inset-top))' }}>
           <Hexagon size={20} className="fill-amber-400 drop-shadow-sm" /> {coins}
         </div>
@@ -1051,10 +1275,10 @@ export default function App() {
           <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-indigo-100/50 border border-indigo-200 text-indigo-700 font-bold text-xs tracking-widest uppercase shadow-sm">
             Entorno de Aprendizaje
           </div>
-          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-indigo-900 tracking-tight mb-4">
-            Academia Capi-bot
+          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-indigo-900 tracking-tight mb-6 pb-2">
+            Academia LogiRom
           </h1>
-          <p className="text-lg text-slate-500 font-medium max-w-md mx-auto mb-8">
+          <p className="text-lg text-slate-500 font-medium max-w-md mx-auto mb-8 leading-relaxed">
             Domina la lógica de programación y gana tuercas completando misiones.
           </p>
 
@@ -1107,7 +1331,7 @@ export default function App() {
               <CheckCircle2 size={40} className="text-white" />
             </div>
             
-            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-800 mb-2 tracking-tight">¡Misión Cumplida!</h2>
+            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-800 mb-2 pb-1 tracking-tight">¡Misión Cumplida!</h2>
             
             <div className="flex justify-center gap-3 mb-6 mt-4">
               {[1, 2, 3].map(star => (
