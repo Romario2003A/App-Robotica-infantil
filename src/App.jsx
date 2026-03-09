@@ -41,6 +41,18 @@ export default function App() {
         { x: 3, y: 2 },
       ],
     },
+    {
+      id: 3,
+      title: "Nivel 3: Esquivar muro",
+      start: { x: 0, y: 3 },
+      goal: { x: 5, y: 3 },
+      obstacles: [
+        { x: 2, y: 1 },
+        { x: 2, y: 2 },
+        { x: 2, y: 3 },
+        { x: 2, y: 4 },
+      ],
+    },
   ];
 
   const modules = [
@@ -105,6 +117,7 @@ export default function App() {
   const [robotPos, setRobotPos] = useState(levels[0].start);
   const [commands, setCommands] = useState([]);
   const [status, setStatus] = useState("idle");
+  const [pendingLoop, setPendingLoop] = useState(null);
 
   const currentLevel = levels[currentLevelIndex];
 
@@ -149,7 +162,17 @@ export default function App() {
   const addCommand = (direction) => {
     if (status === "running") return;
     if (commands.length >= 20) return;
-    setCommands((prev) => [...prev, direction]);
+
+    if (pendingLoop) {
+      setCommands((prev) => [
+        ...prev,
+        { type: "loop", times: pendingLoop, direction },
+      ]);
+      setPendingLoop(null);
+      return;
+    }
+
+    setCommands((prev) => [...prev, { type: "single", direction }]);
   };
 
   const removeCommand = (index) => {
@@ -160,11 +183,13 @@ export default function App() {
   const clearCommands = () => {
     if (status === "running") return;
     setCommands([]);
+    setPendingLoop(null);
   };
 
   const resetLevel = () => {
     setRobotPos(currentLevel.start);
     setCommands([]);
+    setPendingLoop(null);
     setStatus("idle");
   };
 
@@ -172,6 +197,7 @@ export default function App() {
     setCurrentLevelIndex(levelIndex);
     setRobotPos(levels[levelIndex].start);
     setCommands([]);
+    setPendingLoop(null);
     setStatus("idle");
     setCurrentView("game");
   };
@@ -187,6 +213,7 @@ export default function App() {
       setCurrentLevelIndex(nextIndex);
       setRobotPos(levels[nextIndex].start);
       setCommands([]);
+      setPendingLoop(null);
       setStatus("idle");
     }
   };
@@ -202,17 +229,24 @@ export default function App() {
     await sleep(400);
 
     for (const command of commands) {
-      const nextPosition = getNextPosition(currentPosition, command);
+      const steps =
+        command.type === "loop"
+          ? Array.from({ length: command.times }, () => command.direction)
+          : [command.direction];
 
-      if (!isValidMove(nextPosition)) {
-        setStatus("error");
-        return;
+      for (const step of steps) {
+        const nextPosition = getNextPosition(currentPosition, step);
+
+        if (!isValidMove(nextPosition)) {
+          setStatus("error");
+          return;
+        }
+
+        currentPosition = nextPosition;
+        setRobotPos(currentPosition);
+
+        await sleep(300);
       }
-
-      currentPosition = nextPosition;
-      setRobotPos(currentPosition);
-
-      await sleep(350);
     }
 
     const reachedGoal =
@@ -436,6 +470,46 @@ export default function App() {
             Memoria de comandos
           </h3>
 
+          <div className="mb-4 bg-purple-50 p-3 rounded-xl border-2 border-purple-200">
+            <h4 className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
+              <Repeat size={16} />
+              Bucle
+            </h4>
+
+            {pendingLoop ? (
+              <div className="text-purple-700 font-bold text-sm text-center bg-white p-2 rounded-lg border border-purple-200">
+                Selecciona una flecha para repetir x{pendingLoop}
+                <button
+                  onClick={() => setPendingLoop(null)}
+                  className="block mx-auto mt-1 text-red-500 text-xs underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setPendingLoop(2)}
+                  className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
+                >
+                  x2
+                </button>
+                <button
+                  onClick={() => setPendingLoop(3)}
+                  className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
+                >
+                  x3
+                </button>
+                <button
+                  onClick={() => setPendingLoop(4)}
+                  className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
+                >
+                  x4
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <button
               onClick={() => addCommand("UP")}
@@ -494,12 +568,19 @@ export default function App() {
               <div className="flex flex-wrap gap-2">
                 {commands.map((command, index) => (
                   <button
-                    key={`${command}-${index}`}
+                    key={index}
                     onClick={() => removeCommand(index)}
-                    className="w-10 h-10 rounded-lg bg-white border-2 border-slate-300 hover:border-red-400 flex items-center justify-center shadow-sm"
+                    className={`min-w-10 h-10 px-2 rounded-lg border-2 flex items-center justify-center gap-1 shadow-sm ${
+                      command.type === "loop"
+                        ? "bg-purple-100 border-purple-300 text-purple-800"
+                        : "bg-white border-slate-300"
+                    }`}
                     title="Eliminar comando"
                   >
-                    {renderArrowIcon(command)}
+                    {command.type === "loop" && (
+                      <span className="text-xs font-black">x{command.times}</span>
+                    )}
+                    {renderArrowIcon(command.direction)}
                   </button>
                 ))}
               </div>
