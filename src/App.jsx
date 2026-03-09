@@ -20,7 +20,10 @@ export default function App() {
   const coins = 0;
   const GRID_SIZE = 6;
 
+  const [currentView, setCurrentView] = useState("home");
   const [robotPos, setRobotPos] = useState({ x: 0, y: 2 });
+
+  const startPos = { x: 0, y: 2 };
   const goal = { x: 5, y: 2 };
 
   const robotDesign = {
@@ -104,7 +107,16 @@ export default function App() {
   };
 
   const resetRobot = () => {
-    setRobotPos({ x: 0, y: 2 });
+    setRobotPos(startPos);
+  };
+
+  const enterGame = () => {
+    setRobotPos(startPos);
+    setCurrentView("game");
+  };
+
+  const goHome = () => {
+    setCurrentView("home");
   };
 
   const renderGrid = () => {
@@ -154,10 +166,12 @@ export default function App() {
     bgClass,
     textClass,
     borderClass,
+    onClick,
   }) => {
     return (
-      <div
-        className={`bg-white rounded-3xl shadow-lg border-4 ${borderClass} p-6 flex items-center gap-6`}
+      <button
+        onClick={onClick}
+        className={`bg-white rounded-3xl shadow-lg border-4 ${borderClass} p-6 flex items-center gap-6 text-left hover:scale-[1.01] transition-transform w-full`}
       >
         <div className={`${bgClass} ${textClass} p-4 rounded-2xl`}>
           <Icon size={40} />
@@ -167,55 +181,90 @@ export default function App() {
           <h2 className="text-2xl font-bold text-slate-800 mb-1">{title}</h2>
           <p className="text-slate-500 font-medium">{desc}</p>
         </div>
-      </div>
+      </button>
     );
   };
 
   const goalReached = robotPos.x === goal.x && robotPos.y === goal.y;
 
+  if (currentView === "home") {
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans p-4 flex flex-col items-center">
+        <div className="absolute right-4 top-4 bg-amber-100 text-amber-600 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300 z-10">
+          <Hexagon size={20} className="fill-amber-400" /> {coins}
+        </div>
+
+        <header className="text-center mt-8 mb-8 w-full max-w-2xl relative">
+          <h1 className="text-4xl font-black text-indigo-900 tracking-tight mb-3 flex items-center justify-center gap-3">
+            🚀 Academia Capi-bot
+          </h1>
+
+          <p className="text-lg text-slate-600 font-medium max-w-md mx-auto mb-6">
+            Elige tu módulo y gana tuercas doradas completando niveles con código
+            perfecto.
+          </p>
+
+          <div className="bg-slate-800 text-white rounded-2xl p-4 shadow-lg border-2 border-slate-700 flex items-center justify-between mx-auto w-full">
+            <div className="flex items-center gap-4">
+              <div
+                className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl border-b-2 ${robotDesign.color.bg} ${robotDesign.color.border}`}
+              >
+                {robotDesign.face.emoji}
+              </div>
+
+              <div className="text-left">
+                <h3 className="font-bold text-lg text-yellow-400 flex items-center gap-2">
+                  <ShoppingCart size={18} /> Taller y Tienda
+                </h3>
+                <p className="text-sm text-slate-300">
+                  ¡Gasta tus tuercas en nuevos aspectos!
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-700 p-2 rounded-full text-slate-300">
+              <ChevronLeft size={20} className="rotate-180" />
+            </div>
+          </div>
+        </header>
+
+        <div className="w-full max-w-2xl flex flex-col gap-4">
+          {modules.map((module) => (
+            <ModuleCard
+              key={module.id}
+              title={`Módulo ${module.id}: ${module.title}`}
+              desc={module.desc}
+              icon={module.icon}
+              bgClass={module.bgClass}
+              textClass={module.textClass}
+              borderClass={module.borderClass}
+              onClick={enterGame}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans p-4 flex flex-col items-center">
-      <div className="absolute right-4 top-4 bg-amber-100 text-amber-600 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300 z-10">
-        <Hexagon size={20} className="fill-amber-400" /> {coins}
+    <div className="min-h-screen bg-sky-50 font-sans p-4 flex flex-col items-center">
+      <div className="w-full max-w-4xl flex justify-between items-center mb-6">
+        <button
+          onClick={goHome}
+          className="flex items-center gap-2 text-sky-700 hover:text-sky-900 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border"
+        >
+          <ChevronLeft size={20} />
+          Mapa
+        </button>
+
+        <div className="bg-amber-100 text-amber-600 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300">
+          <Hexagon size={20} className="fill-amber-400" /> {coins}
+        </div>
       </div>
 
-      <header className="text-center mt-8 mb-8 w-full max-w-2xl relative">
-        <h1 className="text-4xl font-black text-indigo-900 tracking-tight mb-3 flex items-center justify-center gap-3">
-          🚀 Academia Capi-bot
-        </h1>
-
-        <p className="text-lg text-slate-600 font-medium max-w-md mx-auto mb-6">
-          Elige tu módulo y gana tuercas doradas completando niveles con código
-          perfecto.
-        </p>
-
-        <div className="bg-slate-800 text-white rounded-2xl p-4 shadow-lg border-2 border-slate-700 flex items-center justify-between mx-auto w-full">
-          <div className="flex items-center gap-4">
-            <div
-              className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl border-b-2 ${robotDesign.color.bg} ${robotDesign.color.border}`}
-            >
-              {robotDesign.face.emoji}
-            </div>
-
-            <div className="text-left">
-              <h3 className="font-bold text-lg text-yellow-400 flex items-center gap-2">
-                <ShoppingCart size={18} /> Taller y Tienda
-              </h3>
-              <p className="text-sm text-slate-300">
-                ¡Gasta tus tuercas en nuevos aspectos!
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-slate-700 p-2 rounded-full text-slate-300">
-            <ChevronLeft size={20} className="rotate-180" />
-          </div>
-        </div>
-      </header>
-
-      <section className="w-full max-w-2xl mb-10">
+      <section className="w-full max-w-2xl bg-white p-6 rounded-3xl shadow-xl border-4 border-sky-100">
         <h2 className="text-2xl font-bold text-slate-800 mb-4 text-center">
-          Vista inicial del tablero
+          Nivel 1: Línea recta
         </h2>
 
         <div
@@ -274,20 +323,6 @@ export default function App() {
           )}
         </div>
       </section>
-
-      <div className="w-full max-w-2xl flex flex-col gap-4">
-        {modules.map((module) => (
-          <ModuleCard
-            key={module.id}
-            title={`Módulo ${module.id}: ${module.title}`}
-            desc={module.desc}
-            icon={module.icon}
-            bgClass={module.bgClass}
-            textClass={module.textClass}
-            borderClass={module.borderClass}
-          />
-        ))}
-      </div>
     </div>
   );
 }
