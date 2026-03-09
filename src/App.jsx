@@ -22,11 +22,13 @@ import {
   Wrench,
   CheckCircle2,
   Lock,
+  CircleDot,
 } from "lucide-react";
 
 export default function App() {
   const GRID_SIZE = 6;
   const MAX_COMMANDS = 20;
+  const MAX_TRICK_STEPS = 5;
   const STORAGE_KEY = "academia-capibot-save-v1";
 
   const SECTION_1_LEVELS = [
@@ -135,12 +137,12 @@ export default function App() {
   const SECTION_4_LEVELS = [
     {
       id: 10,
-      title: "Nivel 1: Próximamente funciones",
+      title: "Nivel 1: Primer truco",
       start: { x: 0, y: 2 },
       goal: { x: 5, y: 2 },
       obstacles: [],
-      hint: "Este módulo se completará más adelante. Por ahora puedes jugar niveles base.",
-      par: 5,
+      hint: "Graba una secuencia corta y reutilízala como función.",
+      par: 3,
     },
     {
       id: 11,
@@ -148,8 +150,8 @@ export default function App() {
       start: { x: 0, y: 0 },
       goal: { x: 5, y: 5 },
       obstacles: [{ x: 3, y: 0 }, { x: 3, y: 1 }],
-      hint: "Más adelante aquí vivirán los trucos reutilizables.",
-      par: 10,
+      hint: "Usa miTruco() para no repetir siempre lo mismo.",
+      par: 6,
     },
     {
       id: 12,
@@ -157,8 +159,8 @@ export default function App() {
       start: { x: 0, y: 5 },
       goal: { x: 5, y: 0 },
       obstacles: [{ x: 2, y: 4 }, { x: 2, y: 3 }, { x: 4, y: 1 }],
-      hint: "Este módulo aún usa la lógica base mientras avanzamos paso a paso.",
-      par: 10,
+      hint: "Las funciones ayudan a simplificar rutas largas.",
+      par: 7,
     },
   ];
 
@@ -446,6 +448,9 @@ export default function App() {
   const [shopColors, setShopColors] = useState(initialSave.shopColors);
   const [robotDesign, setRobotDesign] = useState(initialSave.robotDesign);
 
+  const [isRecordingTrick, setIsRecordingTrick] = useState(false);
+  const [customTrick, setCustomTrick] = useState([]);
+
   const currentLevels = getLevelsBySection(currentSection);
   const currentLevel = currentLevels[currentLevelIndex];
 
@@ -495,12 +500,15 @@ export default function App() {
     setStatus("idle");
     setEarnedStars(0);
     setEarnedCoins(0);
+    setIsRecordingTrick(false);
+    setCustomTrick([]);
   };
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const canUseLoops = currentSection >= 2;
   const canUseIf = currentSection >= 3;
+  const canUseFunctions = currentSection >= 4;
 
   const isObstacle = (x, y) => {
     return currentLevel.obstacles.some(
@@ -569,6 +577,8 @@ export default function App() {
     setStatus("idle");
     setEarnedStars(0);
     setEarnedCoins(0);
+    setIsRecordingTrick(false);
+    setCustomTrick([]);
   };
 
   const enterGame = (section, levelIndex = 0) => {
@@ -582,6 +592,8 @@ export default function App() {
     setStatus("idle");
     setEarnedStars(0);
     setEarnedCoins(0);
+    setIsRecordingTrick(false);
+    setCustomTrick([]);
     setCurrentView("game");
   };
 
@@ -601,11 +613,21 @@ export default function App() {
       setStatus("idle");
       setEarnedStars(0);
       setEarnedCoins(0);
+      setIsRecordingTrick(false);
+      setCustomTrick([]);
     }
   };
 
   const addDirectionCommand = (direction) => {
     if (status === "running") return;
+
+    if (isRecordingTrick) {
+      if (customTrick.length < MAX_TRICK_STEPS) {
+        setCustomTrick((prev) => [...prev, direction]);
+      }
+      return;
+    }
+
     if (commands.length >= MAX_COMMANDS) return;
 
     if (pendingIf) {
@@ -640,6 +662,40 @@ export default function App() {
     }
 
     setCommands((prev) => [...prev, { type: "single", direction }]);
+  };
+
+  const addFunctionCommand = () => {
+    if (status === "running") return;
+    if (!canUseFunctions) return;
+    if (customTrick.length === 0) return;
+    if (commands.length >= MAX_COMMANDS) return;
+    if (isRecordingTrick) return;
+
+    setCommands((prev) => [...prev, { type: "function" }]);
+  };
+
+  const clearTrick = () => {
+    if (status === "running") return;
+    setIsRecordingTrick(false);
+    setCustomTrick([]);
+  };
+
+  const toggleRecordingTrick = () => {
+    if (status === "running") return;
+    if (!canUseFunctions) return;
+
+    if (!isRecordingTrick && customTrick.length === 0) {
+      setIsRecordingTrick(true);
+      return;
+    }
+
+    if (!isRecordingTrick && customTrick.length > 0) {
+      setIsRecordingTrick(true);
+      setCustomTrick([]);
+      return;
+    }
+
+    setIsRecordingTrick(false);
   };
 
   const removeCommand = (index) => {
@@ -718,6 +774,26 @@ export default function App() {
         currentPosition = nextPosition;
         setRobotPos(currentPosition);
         await sleep(300);
+      }
+
+      if (command.type === "function") {
+        if (customTrick.length === 0) {
+          setStatus("error");
+          return;
+        }
+
+        for (const step of customTrick) {
+          const nextPosition = getNextPosition(currentPosition, step);
+
+          if (!isValidMove(nextPosition)) {
+            setStatus("error");
+            return;
+          }
+
+          currentPosition = nextPosition;
+          setRobotPos(currentPosition);
+          await sleep(300);
+        }
       }
     }
 
@@ -826,6 +902,31 @@ export default function App() {
       );
       lineNumber += 1;
     };
+
+    if (customTrick.length > 0) {
+      pushLine(
+        <>
+          <span className="text-purple-400">void</span>{" "}
+          <span className="text-pink-300 font-semibold">miTruco</span>
+          <span className="text-slate-300">() {"{"}</span>
+        </>
+      );
+
+      customTrick.forEach((step) => {
+        pushLine(
+          <>
+            <span className="text-blue-400">robot</span>
+            <span className="text-slate-300">.</span>
+            <span className="text-yellow-300">{formatMoveName(step)}</span>
+            <span className="text-slate-300">();</span>
+          </>,
+          "pl-4"
+        );
+      });
+
+      pushLine(<span className="text-slate-300">{"}"}</span>);
+      pushLine(<span className="text-slate-500">//</span>);
+    }
 
     pushLine(
       <>
@@ -941,6 +1042,16 @@ export default function App() {
         );
 
         pushLine(<span className="text-slate-300">{"}"}</span>, "pl-4");
+      }
+
+      if (command.type === "function") {
+        pushLine(
+          <>
+            <span className="text-pink-300 font-semibold">miTruco</span>
+            <span className="text-slate-300">();</span>
+          </>,
+          "pl-4"
+        );
       }
     });
 
@@ -1378,7 +1489,7 @@ export default function App() {
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => {
-                      if (status !== "running") setPendingLoop(2);
+                      if (status !== "running" && !isRecordingTrick) setPendingLoop(2);
                     }}
                     className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
                   >
@@ -1386,7 +1497,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => {
-                      if (status !== "running") setPendingLoop(3);
+                      if (status !== "running" && !isRecordingTrick) setPendingLoop(3);
                     }}
                     className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
                   >
@@ -1394,7 +1505,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => {
-                      if (status !== "running") setPendingLoop(4);
+                      if (status !== "running" && !isRecordingTrick) setPendingLoop(4);
                     }}
                     className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
                   >
@@ -1427,7 +1538,11 @@ export default function App() {
               ) : (
                 <button
                   onClick={() => {
-                    if (status !== "running" && commands.length < MAX_COMMANDS) {
+                    if (
+                      status !== "running" &&
+                      commands.length < MAX_COMMANDS &&
+                      !isRecordingTrick
+                    ) {
                       setPendingIf({ lookDir: null });
                     }
                   }}
@@ -1440,10 +1555,83 @@ export default function App() {
             </div>
           )}
 
+          {canUseFunctions && (
+            <div className="mb-4 bg-pink-50 p-3 rounded-xl border-2 border-pink-200">
+              <h4 className="text-sm font-bold text-pink-800 mb-2 flex items-center gap-2">
+                <Sparkles size={16} />
+                Función / Truco
+              </h4>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={toggleRecordingTrick}
+                  className={`w-full font-bold py-2 rounded-lg flex items-center justify-center gap-2 ${
+                    isRecordingTrick
+                      ? "bg-red-200 text-red-900"
+                      : "bg-pink-200 hover:bg-pink-300 text-pink-900"
+                  }`}
+                >
+                  <CircleDot
+                    size={18}
+                    className={isRecordingTrick ? "animate-pulse text-red-600" : ""}
+                  />
+                  {isRecordingTrick ? "Detener grabación" : "Grabar truco"}
+                </button>
+
+                <div className="bg-white/70 p-2 rounded-lg min-h-[48px] flex items-center justify-between">
+                  <div className="flex gap-1 flex-wrap">
+                    {customTrick.length === 0 ? (
+                      <span className="text-xs text-pink-500/70 italic">
+                        Truco vacío...
+                      </span>
+                    ) : (
+                      customTrick.map((dir, index) => (
+                        <div
+                          key={`${dir}-${index}`}
+                          className="bg-white border border-pink-200 p-1 rounded text-pink-700"
+                        >
+                          {renderArrowIcon(dir, 14)}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {customTrick.length > 0 && !isRecordingTrick && (
+                    <button
+                      onClick={clearTrick}
+                      className="text-red-500 hover:text-red-700 ml-2"
+                      title="Borrar truco"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+
+                {!isRecordingTrick && customTrick.length > 0 && (
+                  <button
+                    onClick={addFunctionCommand}
+                    className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <Sparkles size={16} />
+                    Usar miTruco()
+                  </button>
+                )}
+
+                <div className="text-[11px] text-pink-700/80">
+                  Máximo {MAX_TRICK_STEPS} pasos por truco.
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <button
               onClick={() => addDirectionCommand("UP")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+              className={`border-2 rounded-xl p-3 font-bold flex flex-col items-center justify-center ${
+                isRecordingTrick
+                  ? "bg-pink-100 border-pink-300 text-pink-800"
+                  : "bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800"
+              }`}
             >
               <ArrowUp size={28} />
               Arriba
@@ -1451,7 +1639,11 @@ export default function App() {
 
             <button
               onClick={() => addDirectionCommand("DOWN")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+              className={`border-2 rounded-xl p-3 font-bold flex flex-col items-center justify-center ${
+                isRecordingTrick
+                  ? "bg-pink-100 border-pink-300 text-pink-800"
+                  : "bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800"
+              }`}
             >
               <ArrowDown size={28} />
               Abajo
@@ -1459,7 +1651,11 @@ export default function App() {
 
             <button
               onClick={() => addDirectionCommand("LEFT")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+              className={`border-2 rounded-xl p-3 font-bold flex flex-col items-center justify-center ${
+                isRecordingTrick
+                  ? "bg-pink-100 border-pink-300 text-pink-800"
+                  : "bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800"
+              }`}
             >
               <ArrowLeft size={28} />
               Izquierda
@@ -1467,14 +1663,24 @@ export default function App() {
 
             <button
               onClick={() => addDirectionCommand("RIGHT")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+              className={`border-2 rounded-xl p-3 font-bold flex flex-col items-center justify-center ${
+                isRecordingTrick
+                  ? "bg-pink-100 border-pink-300 text-pink-800"
+                  : "bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800"
+              }`}
             >
               <ArrowRight size={28} />
               Derecha
             </button>
           </div>
 
-          <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 min-h-[160px] mb-4">
+          <div
+            className={`border-2 rounded-2xl p-4 min-h-[160px] mb-4 ${
+              isRecordingTrick
+                ? "bg-slate-100 border-slate-300 opacity-70"
+                : "bg-slate-50 border-slate-200"
+            }`}
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="font-bold text-slate-600">
                 Bloques: {commands.length}/{MAX_COMMANDS}
@@ -1492,7 +1698,9 @@ export default function App() {
 
             {commands.length === 0 ? (
               <div className="text-slate-400 italic text-sm">
-                Agrega flechas para construir tu programa.
+                {isRecordingTrick
+                  ? "Grabando truco... usa las flechas."
+                  : "Agrega flechas para construir tu programa."}
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -1505,6 +1713,8 @@ export default function App() {
                         ? "bg-purple-100 border-purple-300 text-purple-800"
                         : command.type === "if"
                         ? "bg-orange-100 border-orange-300 text-orange-800"
+                        : command.type === "function"
+                        ? "bg-pink-100 border-pink-300 text-pink-800"
                         : "bg-white border-slate-300"
                     }`}
                     title="Eliminar comando"
@@ -1515,6 +1725,10 @@ export default function App() {
 
                     {command.type === "if" && (
                       <span className="text-xs font-black">IF</span>
+                    )}
+
+                    {command.type === "function" && (
+                      <Sparkles size={16} className="text-pink-600" />
                     )}
 
                     {command.type === "single" &&
@@ -1538,7 +1752,7 @@ export default function App() {
 
           <button
             onClick={runProgram}
-            disabled={commands.length === 0 || status === "running"}
+            disabled={commands.length === 0 || status === "running" || isRecordingTrick}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50"
           >
             <Play size={22} />
