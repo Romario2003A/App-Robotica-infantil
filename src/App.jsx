@@ -91,7 +91,19 @@ const SECTION_1_LEVELS = [
   { id: 7, title: "Nivel 7: El callejón", start: { x: 0, y: 2 }, goal: { x: 5, y: 2 }, obstacles: [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 1, y: 3 }, { x: 2, y: 3 }, { x: 3, y: 3 }, { x: 4, y: 3 }], par: 5 },
   { id: 8, title: "Nivel 8: Serpentina", start: { x: 0, y: 0 }, goal: { x: 0, y: 5 }, obstacles: [{ x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 1, y: 4 }, { x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 }, { x: 5, y: 4 }], par: 19 },
   { id: 9, title: "Nivel 9: Atrapado", start: { x: 2, y: 2 }, goal: { x: 5, y: 5 }, obstacles: [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 1, y: 2 }, { x: 3, y: 2 }, { x: 1, y: 3 }, { x: 2, y: 3 }], par: 6 },
-  { id: 10, title: "Nivel 10: El gran viaje", start: { x: 0, y: 0 }, goal: { x: 5, y: 0 }, obstacles: [{ x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 5, y: 2 }, { x: 4, y: 2 }, { x: 3, y: 2 }, { x: 2, y: 2 }, { x: 1, y: 2 }, { x: 0, y: 2 }], par: 17 }
+  { id: 10, title: "Nivel 10: El gran viaje", start: { x: 0, y: 0 }, goal: { x: 5, y: 0 }, obstacles: [{ x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 5, y: 2 }, { x: 4, y: 2 }, { x: 3, y: 2 }, { x: 2, y: 2 }, { x: 1, y: 2 }, { x: 0, y: 2 }], par: 17 },
+  
+  // --- NIVELES 11 AL 20: INCREMENTO DE COMPLEJIDAD ---
+  { id: 111, title: "Nivel 11: La barrera", start: { x: 0, y: 3 }, goal: { x: 5, y: 3 }, obstacles: [{x:2,y:1},{x:2,y:2},{x:2,y:3},{x:2,y:4},{x:2,y:5}], par: 11 },
+  { id: 112, title: "Nivel 12: El foso doble", start: { x: 0, y: 0 }, goal: { x: 5, y: 5 }, obstacles: [{x:2,y:0},{x:2,y:1},{x:2,y:2},{x:2,y:3},{x:2,y:4}, {x:4,y:1},{x:4,y:2},{x:4,y:3},{x:4,y:4},{x:4,y:5}], par: 20 },
+  { id: 113, title: "Nivel 13: Laberinto básico", start: { x: 0, y: 0 }, goal: { x: 5, y: 5 }, obstacles: [{x:1,y:0},{x:1,y:1}, {x:3,y:4},{x:3,y:5}], par: 14 },
+  { id: 114, title: "Nivel 14: Escalones gigantes", start: { x: 0, y: 0 }, goal: { x: 5, y: 5 }, obstacles: [{x:1,y:0},{x:2,y:0},{x:3,y:0}, {x:1,y:2},{x:2,y:2},{x:3,y:2}, {x:3,y:4},{x:4,y:4},{x:5,y:4}], par: 18 },
+  { id: 115, title: "Nivel 15: Rodeo Doble", start: { x: 0, y: 2 }, goal: { x: 5, y: 2 }, obstacles: [{x:2,y:0},{x:2,y:1},{x:2,y:2},{x:2,y:3}, {x:4,y:2},{x:4,y:3},{x:4,y:4},{x:4,y:5}], par: 15 },
+  { id: 116, title: "Nivel 16: El gran gancho", start: { x: 2, y: 3 }, goal: { x: 2, y: 2 }, obstacles: [{x:1,y:2},{x:1,y:3},{x:1,y:4}, {x:2,y:4}, {x:3,y:4},{x:3,y:3},{x:3,y:2}, {x:2,y:1}], par: 19 },
+  { id: 117, title: "Nivel 17: Zigzag denso", start: { x: 0, y: 0 }, goal: { x: 0, y: 4 }, obstacles: [{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1}, {x:1,y:3},{x:2,y:3},{x:3,y:3},{x:4,y:3},{x:5,y:3}], par: 14 },
+  { id: 118, title: "Nivel 18: El caracol", start: { x: 0, y: 0 }, goal: { x: 3, y: 3 }, obstacles: [{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:4,y:1}, {x:4,y:2},{x:4,y:3},{x:4,y:4}, {x:1,y:4},{x:2,y:4},{x:3,y:4}, {x:1,y:2},{x:1,y:3}], par: 22 },
+  { id: 119, title: "Nivel 19: La letra M", start: { x: 0, y: 5 }, goal: { x: 5, y: 0 }, obstacles: [{x:1,y:2},{x:1,y:3},{x:1,y:4},{x:1,y:5}, {x:3,y:0},{x:3,y:1},{x:3,y:2},{x:3,y:3}], par: 20 },
+  { id: 120, title: "Nivel 20: Memoria Llena", start: { x: 0, y: 0 }, goal: { x: 5, y: 1 }, obstacles: [{x:1,y:0},{x:1,y:1},{x:1,y:2},{x:1,y:3},{x:1,y:4}, {x:3,y:1},{x:3,y:2},{x:3,y:3},{x:3,y:4},{x:3,y:5}, {x:5,y:0}], hint: "¡Usa todo tu espacio de código! Sigue el único camino posible.", par: 24 }
 ];
 
 const SECTION_2_LEVELS = [
