@@ -18,10 +18,10 @@ import {
   RotateCcw,
   HelpCircle,
   Terminal,
+  Star,
 } from "lucide-react";
 
 export default function App() {
-  const coins = 0;
   const GRID_SIZE = 6;
   const MAX_COMMANDS = 20;
 
@@ -33,6 +33,7 @@ export default function App() {
       goal: { x: 5, y: 2 },
       obstacles: [],
       hint: "Usa flechas para llegar directo a la batería.",
+      par: 5,
     },
     {
       id: 2,
@@ -45,6 +46,7 @@ export default function App() {
         { x: 3, y: 2 },
       ],
       hint: "Tendrás que rodear el muro para llegar.",
+      par: 10,
     },
     {
       id: 3,
@@ -58,6 +60,7 @@ export default function App() {
         { x: 2, y: 4 },
       ],
       hint: "Piensa una ruta para pasar por arriba o por abajo.",
+      par: 9,
     },
   ];
 
@@ -69,6 +72,7 @@ export default function App() {
       goal: { x: 5, y: 2 },
       obstacles: [],
       hint: "Usa un bucle para repetir movimientos.",
+      par: 2,
     },
     {
       id: 5,
@@ -81,6 +85,7 @@ export default function App() {
         { x: 3, y: 2 },
       ],
       hint: "Combina movimientos repetidos para ahorrar bloques.",
+      par: 6,
     },
     {
       id: 6,
@@ -89,6 +94,7 @@ export default function App() {
       goal: { x: 5, y: 5 },
       obstacles: [],
       hint: "Un bucle puede resolver este nivel con menos bloques.",
+      par: 2,
     },
   ];
 
@@ -100,6 +106,7 @@ export default function App() {
       goal: { x: 5, y: 2 },
       obstacles: [{ x: 2, y: 2 }],
       hint: "Haz que el robot mire hacia delante y decida cómo esquivar.",
+      par: 6,
     },
     {
       id: 8,
@@ -108,6 +115,7 @@ export default function App() {
       goal: { x: 5, y: 0 },
       obstacles: [{ x: 2, y: 0 }, { x: 4, y: 0 }],
       hint: "El sensor te ayuda a reaccionar cuando hay obstáculo.",
+      par: 7,
     },
     {
       id: 9,
@@ -116,6 +124,7 @@ export default function App() {
       goal: { x: 5, y: 3 },
       obstacles: [{ x: 2, y: 3 }, { x: 4, y: 3 }],
       hint: "Usa varias decisiones para evitar choques.",
+      par: 8,
     },
   ];
 
@@ -127,6 +136,7 @@ export default function App() {
       goal: { x: 5, y: 2 },
       obstacles: [],
       hint: "Este módulo se completará más adelante. Por ahora puedes jugar niveles base.",
+      par: 5,
     },
     {
       id: 11,
@@ -135,6 +145,7 @@ export default function App() {
       goal: { x: 5, y: 5 },
       obstacles: [{ x: 3, y: 0 }, { x: 3, y: 1 }],
       hint: "Más adelante aquí vivirán los trucos reutilizables.",
+      par: 10,
     },
     {
       id: 12,
@@ -143,6 +154,7 @@ export default function App() {
       goal: { x: 5, y: 0 },
       obstacles: [{ x: 2, y: 4 }, { x: 2, y: 3 }, { x: 4, y: 1 }],
       hint: "Este módulo aún usa la lógica base mientras avanzamos paso a paso.",
+      par: 10,
     },
   ];
 
@@ -154,6 +166,7 @@ export default function App() {
       goal: { x: 5, y: 2 },
       obstacles: [],
       hint: "Más adelante este módulo incluirá objetos y puertas.",
+      par: 5,
     },
     {
       id: 14,
@@ -162,6 +175,7 @@ export default function App() {
       goal: { x: 5, y: 0 },
       obstacles: [{ x: 2, y: 0 }, { x: 2, y: 1 }],
       hint: "Por ahora mantiene la base del juego sin romper el proyecto.",
+      par: 8,
     },
     {
       id: 15,
@@ -170,6 +184,7 @@ export default function App() {
       goal: { x: 5, y: 5 },
       obstacles: [{ x: 3, y: 5 }, { x: 3, y: 4 }],
       hint: "Luego agregaremos mochila y recolección.",
+      par: 8,
     },
   ];
 
@@ -181,6 +196,7 @@ export default function App() {
       goal: { x: 5, y: 2 },
       obstacles: [],
       hint: "Más adelante este módulo cambiará a control en tiempo real.",
+      par: 5,
     },
     {
       id: 17,
@@ -189,6 +205,7 @@ export default function App() {
       goal: { x: 5, y: 0 },
       obstacles: [{ x: 3, y: 0 }],
       hint: "Por ahora usa ejecución de programa como los módulos anteriores.",
+      par: 6,
     },
     {
       id: 18,
@@ -197,6 +214,7 @@ export default function App() {
       goal: { x: 5, y: 5 },
       obstacles: [{ x: 2, y: 5 }, { x: 2, y: 4 }, { x: 4, y: 5 }],
       hint: "Después lo cambiaremos a modo pilotaje.",
+      par: 8,
     },
   ];
 
@@ -275,6 +293,11 @@ export default function App() {
   const [pendingLoop, setPendingLoop] = useState(null);
   const [pendingIf, setPendingIf] = useState(null);
 
+  const [coins, setCoins] = useState(0);
+  const [levelStars, setLevelStars] = useState({});
+  const [earnedStars, setEarnedStars] = useState(0);
+  const [earnedCoins, setEarnedCoins] = useState(0);
+
   const currentLevels = getLevelsBySection(currentSection);
   const currentLevel = currentLevels[currentLevelIndex];
 
@@ -319,12 +342,42 @@ export default function App() {
     return true;
   };
 
+  const calculateRewards = () => {
+    const blocksUsed = commands.length;
+    const par = currentLevel.par ?? 999;
+
+    let stars = 1;
+    if (blocksUsed <= par) {
+      stars = 3;
+    } else if (blocksUsed <= par + 3) {
+      stars = 2;
+    }
+
+    let rewardCoins = 2;
+    if (stars === 2) rewardCoins = 5;
+    if (stars === 3) rewardCoins = 10;
+
+    setEarnedStars(stars);
+    setEarnedCoins(rewardCoins);
+    setCoins((prev) => prev + rewardCoins);
+
+    setLevelStars((prev) => {
+      const bestStars = prev[currentLevel.id] || 0;
+      if (stars > bestStars) {
+        return { ...prev, [currentLevel.id]: stars };
+      }
+      return prev;
+    });
+  };
+
   const resetLevel = () => {
     setRobotPos(currentLevel.start);
     setCommands([]);
     setPendingLoop(null);
     setPendingIf(null);
     setStatus("idle");
+    setEarnedStars(0);
+    setEarnedCoins(0);
   };
 
   const enterGame = (section, levelIndex = 0) => {
@@ -336,6 +389,8 @@ export default function App() {
     setPendingLoop(null);
     setPendingIf(null);
     setStatus("idle");
+    setEarnedStars(0);
+    setEarnedCoins(0);
     setCurrentView("game");
   };
 
@@ -353,6 +408,8 @@ export default function App() {
       setPendingLoop(null);
       setPendingIf(null);
       setStatus("idle");
+      setEarnedStars(0);
+      setEarnedCoins(0);
     }
   };
 
@@ -412,6 +469,9 @@ export default function App() {
     if (commands.length === 0) return;
 
     setStatus("running");
+    setEarnedStars(0);
+    setEarnedCoins(0);
+
     let currentPosition = currentLevel.start;
     setRobotPos(currentPosition);
 
@@ -475,6 +535,7 @@ export default function App() {
       currentPosition.y === currentLevel.goal.y;
 
     if (reachedGoal) {
+      calculateRewards();
       setStatus("success");
     } else {
       setStatus("error");
@@ -504,6 +565,16 @@ export default function App() {
     if (currentSection === 4) return "text-pink-400";
     if (currentSection === 5) return "text-teal-400";
     return "text-red-400";
+  };
+
+  const getSectionStars = (sectionId) => {
+    const sectionLevels = getLevelsBySection(sectionId);
+    return sectionLevels.reduce((acc, level) => acc + (levelStars[level.id] || 0), 0);
+  };
+
+  const getSectionMaxStars = (sectionId) => {
+    const sectionLevels = getLevelsBySection(sectionId);
+    return sectionLevels.length * 3;
   };
 
   const renderTerminalCode = () => {
@@ -698,11 +769,19 @@ export default function App() {
     textClass,
     borderClass,
   }) => {
+    const starsEarned = getSectionStars(sectionId);
+    const maxStars = getSectionMaxStars(sectionId);
+
     return (
       <button
         onClick={() => enterGame(sectionId, 0)}
-        className={`bg-white rounded-3xl shadow-lg border-4 ${borderClass} p-6 flex items-center gap-6 text-left hover:scale-[1.01] transition-transform w-full`}
+        className={`bg-white rounded-3xl shadow-lg border-4 ${borderClass} p-6 flex items-center gap-6 text-left hover:scale-[1.01] transition-transform w-full relative`}
       >
+        <div className="absolute top-3 right-4 flex items-center gap-1 text-xs font-black text-slate-500">
+          <Star size={14} className="fill-amber-400 text-amber-500" />
+          {starsEarned}/{maxStars}
+        </div>
+
         <div className={`${bgClass} ${textClass} p-4 rounded-2xl`}>
           <Icon size={40} />
         </div>
@@ -819,8 +898,11 @@ export default function App() {
               )}
             </div>
 
-            <div className="text-sm font-bold text-slate-500 whitespace-nowrap">
-              Nivel {currentLevel.id}
+            <div className="text-sm font-bold text-slate-500 whitespace-nowrap text-right">
+              <div>Nivel {currentLevel.id}</div>
+              <div className="text-xs mt-1">
+                Óptimo: {currentLevel.par} bloques
+              </div>
             </div>
           </div>
 
@@ -871,7 +953,7 @@ export default function App() {
             <button
               onClick={nextLevel}
               disabled={
-                !goalReached || currentLevelIndex === currentLevels.length - 1
+                status !== "success" || currentLevelIndex === currentLevels.length - 1
               }
               className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-xl border border-green-600 disabled:opacity-50"
             >
@@ -880,8 +962,27 @@ export default function App() {
           </div>
 
           {status === "success" && (
-            <div className="bg-green-100 border-2 border-green-300 text-green-800 font-bold px-4 py-3 rounded-xl mt-4 text-center">
-              ¡Programa correcto! Llegaste a la meta.
+            <div className="bg-green-100 border-2 border-green-300 text-green-800 font-bold px-4 py-4 rounded-xl mt-4 text-center">
+              <div className="text-lg mb-2">¡Programa correcto! Llegaste a la meta.</div>
+
+              <div className="flex justify-center gap-1 mb-3">
+                {[1, 2, 3].map((star) => (
+                  <Star
+                    key={star}
+                    size={24}
+                    className={
+                      star <= earnedStars
+                        ? "fill-amber-400 text-amber-500"
+                        : "fill-slate-200 text-slate-300"
+                    }
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-amber-700">
+                <Hexagon size={18} className="fill-amber-400 text-amber-500" />
+                +{earnedCoins} tuercas
+              </div>
             </div>
           )}
 
