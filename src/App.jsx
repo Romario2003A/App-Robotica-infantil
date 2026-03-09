@@ -14,6 +14,8 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 
 export default function App() {
@@ -40,18 +42,6 @@ export default function App() {
       ],
     },
   ];
-
-  const [currentView, setCurrentView] = useState("home");
-  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
-
-  const currentLevel = levels[currentLevelIndex];
-
-  const [robotPos, setRobotPos] = useState(currentLevel.start);
-
-  const robotDesign = {
-    face: { emoji: "🤖" },
-    color: { bg: "bg-slate-500", border: "border-slate-600" },
-  };
 
   const modules = [
     {
@@ -110,41 +100,79 @@ export default function App() {
     },
   ];
 
+  const [currentView, setCurrentView] = useState("home");
+  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+  const [robotPos, setRobotPos] = useState(levels[0].start);
+  const [commands, setCommands] = useState([]);
+  const [status, setStatus] = useState("idle");
+
+  const currentLevel = levels[currentLevelIndex];
+
+  const robotDesign = {
+    face: { emoji: "🤖" },
+    color: { bg: "bg-slate-500", border: "border-slate-600" },
+  };
+
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const isObstacle = (x, y) => {
     return currentLevel.obstacles.some(
       (obstacle) => obstacle.x === x && obstacle.y === y
     );
   };
 
-  const moveRobot = (direction) => {
-    setRobotPos((prev) => {
-      let nextX = prev.x;
-      let nextY = prev.y;
+  const getNextPosition = (position, direction) => {
+    let nextX = position.x;
+    let nextY = position.y;
 
-      if (direction === "UP") nextY -= 1;
-      if (direction === "DOWN") nextY += 1;
-      if (direction === "LEFT") nextX -= 1;
-      if (direction === "RIGHT") nextX += 1;
+    if (direction === "UP") nextY -= 1;
+    if (direction === "DOWN") nextY += 1;
+    if (direction === "LEFT") nextX -= 1;
+    if (direction === "RIGHT") nextX += 1;
 
-      if (nextX < 0 || nextX >= GRID_SIZE || nextY < 0 || nextY >= GRID_SIZE) {
-        return prev;
-      }
-
-      if (isObstacle(nextX, nextY)) {
-        return prev;
-      }
-
-      return { x: nextX, y: nextY };
-    });
+    return { x: nextX, y: nextY };
   };
 
-  const resetRobot = () => {
+  const isValidMove = (position) => {
+    const insideGrid =
+      position.x >= 0 &&
+      position.x < GRID_SIZE &&
+      position.y >= 0 &&
+      position.y < GRID_SIZE;
+
+    if (!insideGrid) return false;
+    if (isObstacle(position.x, position.y)) return false;
+
+    return true;
+  };
+
+  const addCommand = (direction) => {
+    if (status === "running") return;
+    if (commands.length >= 20) return;
+    setCommands((prev) => [...prev, direction]);
+  };
+
+  const removeCommand = (index) => {
+    if (status === "running") return;
+    setCommands((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const clearCommands = () => {
+    if (status === "running") return;
+    setCommands([]);
+  };
+
+  const resetLevel = () => {
     setRobotPos(currentLevel.start);
+    setCommands([]);
+    setStatus("idle");
   };
 
   const enterGame = (levelIndex = 0) => {
     setCurrentLevelIndex(levelIndex);
     setRobotPos(levels[levelIndex].start);
+    setCommands([]);
+    setStatus("idle");
     setCurrentView("game");
   };
 
@@ -154,10 +182,56 @@ export default function App() {
 
   const nextLevel = () => {
     const nextIndex = currentLevelIndex + 1;
+
     if (nextIndex < levels.length) {
       setCurrentLevelIndex(nextIndex);
       setRobotPos(levels[nextIndex].start);
+      setCommands([]);
+      setStatus("idle");
     }
+  };
+
+  const runProgram = async () => {
+    if (status === "running") return;
+    if (commands.length === 0) return;
+
+    setStatus("running");
+    let currentPosition = currentLevel.start;
+    setRobotPos(currentPosition);
+
+    await sleep(400);
+
+    for (const command of commands) {
+      const nextPosition = getNextPosition(currentPosition, command);
+
+      if (!isValidMove(nextPosition)) {
+        setStatus("error");
+        return;
+      }
+
+      currentPosition = nextPosition;
+      setRobotPos(currentPosition);
+
+      await sleep(350);
+    }
+
+    const reachedGoal =
+      currentPosition.x === currentLevel.goal.x &&
+      currentPosition.y === currentLevel.goal.y;
+
+    if (reachedGoal) {
+      setStatus("success");
+    } else {
+      setStatus("error");
+    }
+  };
+
+  const renderArrowIcon = (direction, size = 18) => {
+    if (direction === "UP") return <ArrowUp size={size} />;
+    if (direction === "DOWN") return <ArrowDown size={size} />;
+    if (direction === "LEFT") return <ArrowLeft size={size} />;
+    if (direction === "RIGHT") return <ArrowRight size={size} />;
+    return null;
   };
 
   const renderGrid = () => {
@@ -169,9 +243,6 @@ export default function App() {
         const isGoalHere =
           currentLevel.goal.x === x && currentLevel.goal.y === y;
         const isObstacleHere = isObstacle(x, y);
-        const isGoalReached =
-          robotPos.x === currentLevel.goal.x &&
-          robotPos.y === currentLevel.goal.y;
 
         cells.push(
           <div
@@ -193,9 +264,7 @@ export default function App() {
 
             {isRobotHere && (
               <div
-                className={`absolute z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-md border-b-4 ${robotDesign.color.bg} ${robotDesign.color.border} ${
-                  isGoalReached ? "scale-110" : ""
-                }`}
+                className={`absolute z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-md border-b-4 ${robotDesign.color.bg} ${robotDesign.color.border}`}
               >
                 {robotDesign.face.emoji}
               </div>
@@ -298,7 +367,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-sky-50 font-sans p-4 flex flex-col items-center">
-      <div className="w-full max-w-4xl flex justify-between items-center mb-6">
+      <div className="w-full max-w-5xl flex justify-between items-center mb-6">
         <button
           onClick={goHome}
           className="flex items-center gap-2 text-sky-700 hover:text-sky-900 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border"
@@ -312,64 +381,31 @@ export default function App() {
         </div>
       </div>
 
-      <section className="w-full max-w-2xl bg-white p-6 rounded-3xl shadow-xl border-4 border-sky-100">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-slate-800">
-            {currentLevel.title}
-          </h2>
-
-          <div className="text-sm font-bold text-slate-500">
-            Nivel {currentLevel.id}
+      <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start">
+        <section className="w-full lg:w-auto bg-white p-6 rounded-3xl shadow-xl border-4 border-sky-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-slate-800">
+              {currentLevel.title}
+            </h2>
+            <div className="text-sm font-bold text-slate-500">
+              Nivel {currentLevel.id}
+            </div>
           </div>
-        </div>
 
-        <div
-          className="grid gap-2 justify-center mb-6"
-          style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}
-        >
-          {renderGrid()}
-        </div>
-
-        <div className="flex flex-col items-center gap-3">
-          <div className="grid grid-cols-2 gap-3 w-full max-w-md">
-            <button
-              onClick={() => moveRobot("UP")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
-            >
-              <ArrowUp size={28} />
-              Arriba
-            </button>
-
-            <button
-              onClick={() => moveRobot("DOWN")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
-            >
-              <ArrowDown size={28} />
-              Abajo
-            </button>
-
-            <button
-              onClick={() => moveRobot("LEFT")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
-            >
-              <ArrowLeft size={28} />
-              Izquierda
-            </button>
-
-            <button
-              onClick={() => moveRobot("RIGHT")}
-              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
-            >
-              <ArrowRight size={28} />
-              Derecha
-            </button>
+          <div
+            className="grid gap-2 justify-center mb-6"
+            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}
+          >
+            {renderGrid()}
           </div>
 
           <div className="flex gap-3">
             <button
-              onClick={resetRobot}
-              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-300"
+              onClick={resetLevel}
+              disabled={status === "running"}
+              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-300 disabled:opacity-50 flex items-center gap-2"
             >
+              <RotateCcw size={18} />
               Reiniciar
             </button>
 
@@ -382,13 +418,104 @@ export default function App() {
             </button>
           </div>
 
-          {goalReached && (
-            <div className="bg-green-100 border-2 border-green-300 text-green-800 font-bold px-4 py-3 rounded-xl mt-2">
-              ¡Llegaste a la meta!
+          {status === "success" && (
+            <div className="bg-green-100 border-2 border-green-300 text-green-800 font-bold px-4 py-3 rounded-xl mt-4 text-center">
+              ¡Programa correcto! Llegaste a la meta.
             </div>
           )}
-        </div>
-      </section>
+
+          {status === "error" && (
+            <div className="bg-red-100 border-2 border-red-300 text-red-800 font-bold px-4 py-3 rounded-xl mt-4 text-center">
+              El programa falló o chocó con un obstáculo.
+            </div>
+          )}
+        </section>
+
+        <section className="w-full lg:w-96 bg-white p-6 rounded-3xl shadow-xl border-4 border-indigo-100">
+          <h3 className="text-2xl font-bold text-indigo-900 mb-4">
+            Memoria de comandos
+          </h3>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              onClick={() => addCommand("UP")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+            >
+              <ArrowUp size={28} />
+              Arriba
+            </button>
+
+            <button
+              onClick={() => addCommand("DOWN")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+            >
+              <ArrowDown size={28} />
+              Abajo
+            </button>
+
+            <button
+              onClick={() => addCommand("LEFT")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+            >
+              <ArrowLeft size={28} />
+              Izquierda
+            </button>
+
+            <button
+              onClick={() => addCommand("RIGHT")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
+            >
+              <ArrowRight size={28} />
+              Derecha
+            </button>
+          </div>
+
+          <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 min-h-[160px] mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-bold text-slate-600">
+                Bloques: {commands.length}/20
+              </span>
+
+              {commands.length > 0 && (
+                <button
+                  onClick={clearCommands}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+            </div>
+
+            {commands.length === 0 ? (
+              <div className="text-slate-400 italic text-sm">
+                Agrega flechas para construir tu programa.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {commands.map((command, index) => (
+                  <button
+                    key={`${command}-${index}`}
+                    onClick={() => removeCommand(index)}
+                    className="w-10 h-10 rounded-lg bg-white border-2 border-slate-300 hover:border-red-400 flex items-center justify-center shadow-sm"
+                    title="Eliminar comando"
+                  >
+                    {renderArrowIcon(command)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={runProgram}
+            disabled={commands.length === 0 || status === "running"}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-50"
+          >
+            <Play size={22} />
+            Ejecutar programa
+          </button>
+        </section>
+      </div>
     </div>
   );
 }
