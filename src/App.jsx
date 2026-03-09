@@ -20,11 +20,33 @@ export default function App() {
   const coins = 0;
   const GRID_SIZE = 6;
 
-  const [currentView, setCurrentView] = useState("home");
-  const [robotPos, setRobotPos] = useState({ x: 0, y: 2 });
+  const levels = [
+    {
+      id: 1,
+      title: "Nivel 1: Línea recta",
+      start: { x: 0, y: 2 },
+      goal: { x: 5, y: 2 },
+      obstacles: [],
+    },
+    {
+      id: 2,
+      title: "Nivel 2: La primera curva",
+      start: { x: 0, y: 0 },
+      goal: { x: 5, y: 5 },
+      obstacles: [
+        { x: 3, y: 0 },
+        { x: 3, y: 1 },
+        { x: 3, y: 2 },
+      ],
+    },
+  ];
 
-  const startPos = { x: 0, y: 2 };
-  const goal = { x: 5, y: 2 };
+  const [currentView, setCurrentView] = useState("home");
+  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+
+  const currentLevel = levels[currentLevelIndex];
+
+  const [robotPos, setRobotPos] = useState(currentLevel.start);
 
   const robotDesign = {
     face: { emoji: "🤖" },
@@ -88,6 +110,12 @@ export default function App() {
     },
   ];
 
+  const isObstacle = (x, y) => {
+    return currentLevel.obstacles.some(
+      (obstacle) => obstacle.x === x && obstacle.y === y
+    );
+  };
+
   const moveRobot = (direction) => {
     setRobotPos((prev) => {
       let nextX = prev.x;
@@ -102,21 +130,34 @@ export default function App() {
         return prev;
       }
 
+      if (isObstacle(nextX, nextY)) {
+        return prev;
+      }
+
       return { x: nextX, y: nextY };
     });
   };
 
   const resetRobot = () => {
-    setRobotPos(startPos);
+    setRobotPos(currentLevel.start);
   };
 
-  const enterGame = () => {
-    setRobotPos(startPos);
+  const enterGame = (levelIndex = 0) => {
+    setCurrentLevelIndex(levelIndex);
+    setRobotPos(levels[levelIndex].start);
     setCurrentView("game");
   };
 
   const goHome = () => {
     setCurrentView("home");
+  };
+
+  const nextLevel = () => {
+    const nextIndex = currentLevelIndex + 1;
+    if (nextIndex < levels.length) {
+      setCurrentLevelIndex(nextIndex);
+      setRobotPos(levels[nextIndex].start);
+    }
   };
 
   const renderGrid = () => {
@@ -125,20 +166,28 @@ export default function App() {
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
         const isRobotHere = robotPos.x === x && robotPos.y === y;
-        const isGoalHere = goal.x === x && goal.y === y;
-        const isGoalReached = robotPos.x === goal.x && robotPos.y === goal.y;
+        const isGoalHere =
+          currentLevel.goal.x === x && currentLevel.goal.y === y;
+        const isObstacleHere = isObstacle(x, y);
+        const isGoalReached =
+          robotPos.x === currentLevel.goal.x &&
+          robotPos.y === currentLevel.goal.y;
 
         cells.push(
           <div
             key={`${x}-${y}`}
             className={`w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg flex items-center justify-center text-xl sm:text-2xl relative transition-all
               ${
-                isGoalHere && !isRobotHere
+                isObstacleHere
+                  ? "bg-slate-700 border-slate-800"
+                  : isGoalHere && !isRobotHere
                   ? "bg-green-100 border-green-400"
                   : "bg-slate-100 border-slate-300"
               }`}
           >
-            {isGoalHere && !isRobotHere && (
+            {isObstacleHere && "🪨"}
+
+            {isGoalHere && !isRobotHere && !isObstacleHere && (
               <Battery className="text-green-600 w-6 h-6 sm:w-8 sm:h-8" />
             )}
 
@@ -185,7 +234,8 @@ export default function App() {
     );
   };
 
-  const goalReached = robotPos.x === goal.x && robotPos.y === goal.y;
+  const goalReached =
+    robotPos.x === currentLevel.goal.x && robotPos.y === currentLevel.goal.y;
 
   if (currentView === "home") {
     return (
@@ -238,7 +288,7 @@ export default function App() {
               bgClass={module.bgClass}
               textClass={module.textClass}
               borderClass={module.borderClass}
-              onClick={enterGame}
+              onClick={() => enterGame(0)}
             />
           ))}
         </div>
@@ -263,9 +313,15 @@ export default function App() {
       </div>
 
       <section className="w-full max-w-2xl bg-white p-6 rounded-3xl shadow-xl border-4 border-sky-100">
-        <h2 className="text-2xl font-bold text-slate-800 mb-4 text-center">
-          Nivel 1: Línea recta
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-slate-800">
+            {currentLevel.title}
+          </h2>
+
+          <div className="text-sm font-bold text-slate-500">
+            Nivel {currentLevel.id}
+          </div>
+        </div>
 
         <div
           className="grid gap-2 justify-center mb-6"
@@ -309,12 +365,22 @@ export default function App() {
             </button>
           </div>
 
-          <button
-            onClick={resetRobot}
-            className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-300"
-          >
-            Reiniciar posición
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={resetRobot}
+              className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-300"
+            >
+              Reiniciar
+            </button>
+
+            <button
+              onClick={nextLevel}
+              disabled={!goalReached || currentLevelIndex === levels.length - 1}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-xl border border-green-600 disabled:opacity-50"
+            >
+              Siguiente nivel
+            </button>
+          </div>
 
           {goalReached && (
             <div className="bg-green-100 border-2 border-green-300 text-green-800 font-bold px-4 py-3 rounded-xl mt-2">
