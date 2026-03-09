@@ -428,6 +428,12 @@ export default function App() {
     if (status === 'running' || status === 'victory_screen') return;
     playSound('click');
 
+    // Desplazamiento automático suave hacia el tablero y la terminal
+    const boardArea = document.getElementById('game-board-area');
+    if (boardArea) {
+      boardArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     if (currentSection === 6) {
       setStatus('running');
       return;
@@ -567,7 +573,7 @@ export default function App() {
           <div 
             key={`${x}-${y}`} 
             className={`w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center text-xl sm:text-2xl relative transition-all duration-300
-              ${isObsHere ? 'bg-gradient-to-br from-slate-700 to-slate-900 border border-slate-600 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] scale-[1.02]' : 'bg-white shadow-[inset_0_-2px_4px_rgba(0,0,0,0.05)] border border-slate-100'}
+              ${isObsHere ? 'bg-gradient-to-br from-slate-700 to-slate-900 border-2 border-slate-600 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] scale-[1.02] z-0' : 'bg-slate-50 shadow-inner border-2 border-slate-200 hover:bg-slate-100 transition-colors z-0'}
               ${isGoalHere && !isRobotHere && (!isDoorHere || isDoorOpen) ? 'bg-gradient-to-br from-green-50 to-emerald-100 border-green-300 animate-pulse shadow-[inset_0_0_20px_rgba(52,211,153,0.2)]' : ''}
               ${isDoorHere && !isDoorOpen ? 'bg-red-500/10 border-red-400 overflow-hidden' : ''}
               ${isDoorHere && isDoorOpen ? 'bg-green-500/5 border-green-200' : ''}
@@ -992,27 +998,34 @@ export default function App() {
           <div className="bg-slate-50/50 p-6 border-t border-slate-100 grid grid-cols-5 gap-3">
             {levels.map((lvl, idx) => {
               const stars = levelStars[lvl.id] || 0;
+              // El bloqueo ahora es 100% real. El nivel está bloqueado si no es el primero y el anterior no tiene estrellas.
               const isLocked = idx > 0 && !(levelStars[levels[idx-1].id] > 0); 
 
               return (
                 <button
                   key={lvl.id}
-                  disabled={isLocked && false} // TODO: Quitar "&& false" para forzar juego secuencial
+                  disabled={isLocked}
                   onClick={() => { 
                     playSound('click'); 
                     setCurrentSection(sectionNum); 
                     setCurrentLevelIndex(idx); 
                     setCurrentView('game'); 
                   }}
-                  className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center font-black text-xl transition-all duration-300 active:scale-90
-                    ${stars > 0 ? `${bgGradient} text-white shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:-translate-y-1` : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm'}
+                  className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center font-black text-xl transition-all duration-300 ${!isLocked ? 'active:scale-90' : ''}
+                    ${stars > 0 ? `${bgGradient} text-white shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:-translate-y-1` : 
+                      isLocked ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-70' : 
+                      'bg-white text-slate-600 border border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm'}
                   `}
                 >
                   {idx + 1}
-                  <div className="flex mt-1 gap-0.5">
-                    {[1,2,3].map(s => (
-                      <Star key={s} size={10} className={s <= stars ? "fill-amber-300 text-amber-300 drop-shadow-sm" : "fill-slate-200/50 text-transparent"} />
-                    ))}
+                  <div className="flex mt-1 h-3 items-center justify-center gap-0.5">
+                    {isLocked ? (
+                      <Lock size={14} className="text-slate-400/50" />
+                    ) : (
+                      [1,2,3].map(s => (
+                        <Star key={s} size={10} className={s <= stars ? "fill-amber-300 text-amber-300 drop-shadow-sm" : "fill-slate-200/50 text-transparent"} />
+                      ))
+                    )}
                   </div>
                 </button>
               );
@@ -1148,7 +1161,7 @@ export default function App() {
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full max-w-5xl justify-center items-center lg:items-start flex-1">
         
         {/* PANEL IZQUIERDO: Tablero Premium */}
-        <div className="flex flex-col items-center w-full lg:w-auto bg-white/70 backdrop-blur-2xl p-4 sm:p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white shrink-0">
+        <div id="game-board-area" className="flex flex-col items-center w-full lg:w-auto bg-white/70 backdrop-blur-2xl p-4 sm:p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white shrink-0 scroll-mt-4">
           
           <div className="mb-5 text-center h-10 flex items-center justify-center w-full relative">
             
