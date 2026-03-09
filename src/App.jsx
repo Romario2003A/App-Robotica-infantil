@@ -22,14 +22,16 @@ import {
 export default function App() {
   const coins = 0;
   const GRID_SIZE = 6;
+  const MAX_COMMANDS = 20;
 
-  const levels = [
+  const SECTION_1_LEVELS = [
     {
       id: 1,
       title: "Nivel 1: Línea recta",
       start: { x: 0, y: 2 },
       goal: { x: 5, y: 2 },
       obstacles: [],
+      hint: "Usa flechas para llegar directo a la batería.",
     },
     {
       id: 2,
@@ -41,6 +43,7 @@ export default function App() {
         { x: 3, y: 1 },
         { x: 3, y: 2 },
       ],
+      hint: "Tendrás que rodear el muro para llegar.",
     },
     {
       id: 3,
@@ -53,6 +56,146 @@ export default function App() {
         { x: 2, y: 3 },
         { x: 2, y: 4 },
       ],
+      hint: "Piensa una ruta para pasar por arriba o por abajo.",
+    },
+  ];
+
+  const SECTION_2_LEVELS = [
+    {
+      id: 4,
+      title: "Nivel 1: Viaje largo",
+      start: { x: 0, y: 2 },
+      goal: { x: 5, y: 2 },
+      obstacles: [],
+      hint: "Usa un bucle para repetir movimientos.",
+    },
+    {
+      id: 5,
+      title: "Nivel 2: Escalera",
+      start: { x: 0, y: 0 },
+      goal: { x: 4, y: 4 },
+      obstacles: [
+        { x: 1, y: 0 },
+        { x: 2, y: 1 },
+        { x: 3, y: 2 },
+      ],
+      hint: "Combina movimientos repetidos para ahorrar bloques.",
+    },
+    {
+      id: 6,
+      title: "Nivel 3: Pasillo largo",
+      start: { x: 0, y: 5 },
+      goal: { x: 5, y: 5 },
+      obstacles: [],
+      hint: "Un bucle puede resolver este nivel con menos bloques.",
+    },
+  ];
+
+  const SECTION_3_LEVELS = [
+    {
+      id: 7,
+      title: "Nivel 1: Piedra sorpresa",
+      start: { x: 0, y: 2 },
+      goal: { x: 5, y: 2 },
+      obstacles: [{ x: 2, y: 2 }],
+      hint: "Haz que el robot mire hacia delante y decida cómo esquivar.",
+    },
+    {
+      id: 8,
+      title: "Nivel 2: Doble decisión",
+      start: { x: 0, y: 0 },
+      goal: { x: 5, y: 0 },
+      obstacles: [{ x: 2, y: 0 }, { x: 4, y: 0 }],
+      hint: "El sensor te ayuda a reaccionar cuando hay obstáculo.",
+    },
+    {
+      id: 9,
+      title: "Nivel 3: Ruta inteligente",
+      start: { x: 0, y: 3 },
+      goal: { x: 5, y: 3 },
+      obstacles: [{ x: 2, y: 3 }, { x: 4, y: 3 }],
+      hint: "Usa varias decisiones para evitar choques.",
+    },
+  ];
+
+  const SECTION_4_LEVELS = [
+    {
+      id: 10,
+      title: "Nivel 1: Próximamente funciones",
+      start: { x: 0, y: 2 },
+      goal: { x: 5, y: 2 },
+      obstacles: [],
+      hint: "Este módulo se completará más adelante. Por ahora puedes jugar niveles base.",
+    },
+    {
+      id: 11,
+      title: "Nivel 2: Ruta simple",
+      start: { x: 0, y: 0 },
+      goal: { x: 5, y: 5 },
+      obstacles: [{ x: 3, y: 0 }, { x: 3, y: 1 }],
+      hint: "Más adelante aquí vivirán los trucos reutilizables.",
+    },
+    {
+      id: 12,
+      title: "Nivel 3: Curva larga",
+      start: { x: 0, y: 5 },
+      goal: { x: 5, y: 0 },
+      obstacles: [{ x: 2, y: 4 }, { x: 2, y: 3 }, { x: 4, y: 1 }],
+      hint: "Este módulo aún usa la lógica base mientras avanzamos paso a paso.",
+    },
+  ];
+
+  const SECTION_5_LEVELS = [
+    {
+      id: 13,
+      title: "Nivel 1: Próximamente variables",
+      start: { x: 0, y: 2 },
+      goal: { x: 5, y: 2 },
+      obstacles: [],
+      hint: "Más adelante este módulo incluirá objetos y puertas.",
+    },
+    {
+      id: 14,
+      title: "Nivel 2: Desvío",
+      start: { x: 0, y: 0 },
+      goal: { x: 5, y: 0 },
+      obstacles: [{ x: 2, y: 0 }, { x: 2, y: 1 }],
+      hint: "Por ahora mantiene la base del juego sin romper el proyecto.",
+    },
+    {
+      id: 15,
+      title: "Nivel 3: Rodeo",
+      start: { x: 0, y: 5 },
+      goal: { x: 5, y: 5 },
+      obstacles: [{ x: 3, y: 5 }, { x: 3, y: 4 }],
+      hint: "Luego agregaremos mochila y recolección.",
+    },
+  ];
+
+  const SECTION_6_LEVELS = [
+    {
+      id: 16,
+      title: "Nivel 1: Próximamente control remoto",
+      start: { x: 0, y: 2 },
+      goal: { x: 5, y: 2 },
+      obstacles: [],
+      hint: "Más adelante este módulo cambiará a control en tiempo real.",
+    },
+    {
+      id: 17,
+      title: "Nivel 2: Carrera corta",
+      start: { x: 0, y: 0 },
+      goal: { x: 5, y: 0 },
+      obstacles: [{ x: 3, y: 0 }],
+      hint: "Por ahora usa ejecución de programa como los módulos anteriores.",
+    },
+    {
+      id: 18,
+      title: "Nivel 3: Ruta final",
+      start: { x: 0, y: 5 },
+      goal: { x: 5, y: 5 },
+      obstacles: [{ x: 2, y: 5 }, { x: 2, y: 4 }, { x: 4, y: 5 }],
+      hint: "Después lo cambiaremos a modo pilotaje.",
     },
   ];
 
@@ -113,15 +256,26 @@ export default function App() {
     },
   ];
 
+  const getLevelsBySection = (section) => {
+    if (section === 1) return SECTION_1_LEVELS;
+    if (section === 2) return SECTION_2_LEVELS;
+    if (section === 3) return SECTION_3_LEVELS;
+    if (section === 4) return SECTION_4_LEVELS;
+    if (section === 5) return SECTION_5_LEVELS;
+    return SECTION_6_LEVELS;
+  };
+
   const [currentView, setCurrentView] = useState("home");
+  const [currentSection, setCurrentSection] = useState(1);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
-  const [robotPos, setRobotPos] = useState(levels[0].start);
+  const [robotPos, setRobotPos] = useState(SECTION_1_LEVELS[0].start);
   const [commands, setCommands] = useState([]);
   const [status, setStatus] = useState("idle");
   const [pendingLoop, setPendingLoop] = useState(null);
   const [pendingIf, setPendingIf] = useState(null);
 
-  const currentLevel = levels[currentLevelIndex];
+  const currentLevels = getLevelsBySection(currentSection);
+  const currentLevel = currentLevels[currentLevelIndex];
 
   const robotDesign = {
     face: { emoji: "🤖" },
@@ -129,6 +283,9 @@ export default function App() {
   };
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const canUseLoops = currentSection >= 2;
+  const canUseIf = currentSection >= 3;
 
   const isObstacle = (x, y) => {
     return currentLevel.obstacles.some(
@@ -169,9 +326,11 @@ export default function App() {
     setStatus("idle");
   };
 
-  const enterGame = (levelIndex = 0) => {
+  const enterGame = (section, levelIndex = 0) => {
+    const sectionLevels = getLevelsBySection(section);
+    setCurrentSection(section);
     setCurrentLevelIndex(levelIndex);
-    setRobotPos(levels[levelIndex].start);
+    setRobotPos(sectionLevels[levelIndex].start);
     setCommands([]);
     setPendingLoop(null);
     setPendingIf(null);
@@ -186,9 +345,9 @@ export default function App() {
   const nextLevel = () => {
     const nextIndex = currentLevelIndex + 1;
 
-    if (nextIndex < levels.length) {
+    if (nextIndex < currentLevels.length) {
       setCurrentLevelIndex(nextIndex);
-      setRobotPos(levels[nextIndex].start);
+      setRobotPos(currentLevels[nextIndex].start);
       setCommands([]);
       setPendingLoop(null);
       setPendingIf(null);
@@ -198,7 +357,7 @@ export default function App() {
 
   const addDirectionCommand = (direction) => {
     if (status === "running") return;
-    if (commands.length >= 20) return;
+    if (commands.length >= MAX_COMMANDS) return;
 
     if (pendingIf) {
       if (!pendingIf.lookDir) {
@@ -372,17 +531,17 @@ export default function App() {
   };
 
   const ModuleCard = ({
+    sectionId,
     title,
     desc,
     icon: Icon,
     bgClass,
     textClass,
     borderClass,
-    onClick,
   }) => {
     return (
       <button
-        onClick={onClick}
+        onClick={() => enterGame(sectionId, 0)}
         className={`bg-white rounded-3xl shadow-lg border-4 ${borderClass} p-6 flex items-center gap-6 text-left hover:scale-[1.01] transition-transform w-full`}
       >
         <div className={`${bgClass} ${textClass} p-4 rounded-2xl`}>
@@ -445,13 +604,13 @@ export default function App() {
           {modules.map((module) => (
             <ModuleCard
               key={module.id}
+              sectionId={module.id}
               title={`Módulo ${module.id}: ${module.title}`}
               desc={module.desc}
               icon={module.icon}
               bgClass={module.bgClass}
               textClass={module.textClass}
               borderClass={module.borderClass}
-              onClick={() => enterGame(0)}
             />
           ))}
         </div>
@@ -470,18 +629,38 @@ export default function App() {
           Mapa
         </button>
 
-        <div className="bg-amber-100 text-amber-600 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300">
-          <Hexagon size={20} className="fill-amber-400" /> {coins}
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-sm font-bold text-sky-700">
+              Módulo {currentSection}
+            </div>
+            <div className="text-xs text-slate-500">
+              Nivel {currentLevelIndex + 1} de {currentLevels.length}
+            </div>
+          </div>
+
+          <div className="bg-amber-100 text-amber-600 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300">
+            <Hexagon size={20} className="fill-amber-400" /> {coins}
+          </div>
         </div>
       </div>
 
       <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-6 items-start">
         <section className="w-full lg:w-auto bg-white p-6 rounded-3xl shadow-xl border-4 border-sky-100">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-slate-800">
-              {currentLevel.title}
-            </h2>
-            <div className="text-sm font-bold text-slate-500">
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-800">
+                {currentLevel.title}
+              </h2>
+              {currentLevel.hint && (
+                <p className="text-sm text-amber-700 mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <HelpCircle size={16} className="shrink-0 mt-0.5" />
+                  <span>{currentLevel.hint}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="text-sm font-bold text-slate-500 whitespace-nowrap">
               Nivel {currentLevel.id}
             </div>
           </div>
@@ -495,7 +674,7 @@ export default function App() {
             {renderGrid()}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button
               onClick={resetLevel}
               disabled={status === "running"}
@@ -507,7 +686,7 @@ export default function App() {
 
             <button
               onClick={nextLevel}
-              disabled={!goalReached || currentLevelIndex === levels.length - 1}
+              disabled={!goalReached || currentLevelIndex === currentLevels.length - 1}
               className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-xl border border-green-600 disabled:opacity-50"
             >
               Siguiente nivel
@@ -532,84 +711,88 @@ export default function App() {
             Memoria de comandos
           </h3>
 
-          <div className="mb-4 bg-purple-50 p-3 rounded-xl border-2 border-purple-200">
-            <h4 className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
-              <Repeat size={16} />
-              Bucle
-            </h4>
+          {canUseLoops && (
+            <div className="mb-4 bg-purple-50 p-3 rounded-xl border-2 border-purple-200">
+              <h4 className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
+                <Repeat size={16} />
+                Bucle
+              </h4>
 
-            {pendingLoop ? (
-              <div className="text-purple-700 font-bold text-sm text-center bg-white p-2 rounded-lg border border-purple-200">
-                Selecciona una flecha para repetir x{pendingLoop}
-                <button
-                  onClick={() => setPendingLoop(null)}
-                  className="block mx-auto mt-1 text-red-500 text-xs underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
+              {pendingLoop ? (
+                <div className="text-purple-700 font-bold text-sm text-center bg-white p-2 rounded-lg border border-purple-200">
+                  Selecciona una flecha para repetir x{pendingLoop}
+                  <button
+                    onClick={() => setPendingLoop(null)}
+                    className="block mx-auto mt-1 text-red-500 text-xs underline"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => {
+                      if (status !== "running") setPendingLoop(2);
+                    }}
+                    className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
+                  >
+                    x2
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (status !== "running") setPendingLoop(3);
+                    }}
+                    className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
+                  >
+                    x3
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (status !== "running") setPendingLoop(4);
+                    }}
+                    className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
+                  >
+                    x4
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {canUseIf && (
+            <div className="mb-4 bg-orange-50 p-3 rounded-xl border-2 border-orange-200">
+              <h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
+                <Cpu size={16} />
+                Sensor
+              </h4>
+
+              {pendingIf ? (
+                <div className="text-orange-700 font-bold text-sm text-center bg-white p-2 rounded-lg border border-orange-200">
+                  {!pendingIf.lookDir
+                    ? "1. Elige hacia dónde mirar"
+                    : "2. Elige hacia dónde esquivar"}
+                  <button
+                    onClick={() => setPendingIf(null)}
+                    className="block mx-auto mt-1 text-red-500 text-xs underline"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
                 <button
                   onClick={() => {
-                    if (status !== "running") setPendingLoop(2);
+                    if (status !== "running" && commands.length < MAX_COMMANDS) {
+                      setPendingIf({ lookDir: null });
+                    }
                   }}
-                  className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
+                  className="w-full bg-orange-200 hover:bg-orange-300 text-orange-900 font-bold py-2 rounded-lg flex items-center justify-center gap-2"
                 >
-                  x2
+                  <HelpCircle size={16} />
+                  Crear condición
                 </button>
-                <button
-                  onClick={() => {
-                    if (status !== "running") setPendingLoop(3);
-                  }}
-                  className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
-                >
-                  x3
-                </button>
-                <button
-                  onClick={() => {
-                    if (status !== "running") setPendingLoop(4);
-                  }}
-                  className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
-                >
-                  x4
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="mb-4 bg-orange-50 p-3 rounded-xl border-2 border-orange-200">
-            <h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
-              <Cpu size={16} />
-              Sensor
-            </h4>
-
-            {pendingIf ? (
-              <div className="text-orange-700 font-bold text-sm text-center bg-white p-2 rounded-lg border border-orange-200">
-                {!pendingIf.lookDir
-                  ? "1. Elige hacia dónde mirar"
-                  : "2. Elige hacia dónde esquivar"}
-                <button
-                  onClick={() => setPendingIf(null)}
-                  className="block mx-auto mt-1 text-red-500 text-xs underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  if (status !== "running" && commands.length < 20) {
-                    setPendingIf({ lookDir: null });
-                  }
-                }}
-                className="w-full bg-orange-200 hover:bg-orange-300 text-orange-900 font-bold py-2 rounded-lg flex items-center justify-center gap-2"
-              >
-                <HelpCircle size={16} />
-                Crear condición
-              </button>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 mb-4">
             <button
@@ -648,7 +831,7 @@ export default function App() {
           <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 min-h-[160px] mb-4">
             <div className="flex items-center justify-between mb-3">
               <span className="font-bold text-slate-600">
-                Bloques: {commands.length}/20
+                Bloques: {commands.length}/{MAX_COMMANDS}
               </span>
 
               {commands.length > 0 && (
@@ -688,9 +871,11 @@ export default function App() {
                       <span className="text-xs font-black">IF</span>
                     )}
 
-                    {command.type === "single" && renderArrowIcon(command.direction)}
+                    {command.type === "single" &&
+                      renderArrowIcon(command.direction)}
 
-                    {command.type === "loop" && renderArrowIcon(command.direction)}
+                    {command.type === "loop" &&
+                      renderArrowIcon(command.direction)}
 
                     {command.type === "if" && (
                       <>
