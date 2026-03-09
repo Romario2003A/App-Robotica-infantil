@@ -19,6 +19,9 @@ import {
   HelpCircle,
   Terminal,
   Star,
+  Wrench,
+  CheckCircle2,
+  Lock,
 } from "lucide-react";
 
 export default function App() {
@@ -275,6 +278,60 @@ export default function App() {
     },
   ];
 
+  const INITIAL_FACES = [
+    { emoji: "🤖", price: 0, owned: true },
+    { emoji: "👽", price: 0, owned: true },
+    { emoji: "👾", price: 10, owned: false },
+    { emoji: "👻", price: 15, owned: false },
+    { emoji: "🐶", price: 20, owned: false },
+    { emoji: "🦊", price: 20, owned: false },
+  ];
+
+  const INITIAL_COLORS = [
+    {
+      name: "Gris clásico",
+      bg: "bg-slate-500",
+      border: "border-slate-600",
+      price: 0,
+      owned: true,
+    },
+    {
+      name: "Azul espacial",
+      bg: "bg-blue-500",
+      border: "border-blue-600",
+      price: 0,
+      owned: true,
+    },
+    {
+      name: "Rojo fuego",
+      bg: "bg-red-500",
+      border: "border-red-600",
+      price: 5,
+      owned: false,
+    },
+    {
+      name: "Verde tóxico",
+      bg: "bg-green-500",
+      border: "border-green-600",
+      price: 10,
+      owned: false,
+    },
+    {
+      name: "Morado láser",
+      bg: "bg-purple-500",
+      border: "border-purple-600",
+      price: 15,
+      owned: false,
+    },
+    {
+      name: "Oro",
+      bg: "bg-yellow-400",
+      border: "border-yellow-500",
+      price: 25,
+      owned: false,
+    },
+  ];
+
   const getLevelsBySection = (section) => {
     if (section === 1) return SECTION_1_LEVELS;
     if (section === 2) return SECTION_2_LEVELS;
@@ -298,13 +355,15 @@ export default function App() {
   const [earnedStars, setEarnedStars] = useState(0);
   const [earnedCoins, setEarnedCoins] = useState(0);
 
+  const [shopFaces, setShopFaces] = useState(INITIAL_FACES);
+  const [shopColors, setShopColors] = useState(INITIAL_COLORS);
+  const [robotDesign, setRobotDesign] = useState({
+    face: INITIAL_FACES[0],
+    color: INITIAL_COLORS[0],
+  });
+
   const currentLevels = getLevelsBySection(currentSection);
   const currentLevel = currentLevels[currentLevelIndex];
-
-  const robotDesign = {
-    face: { emoji: "🤖" },
-    color: { bg: "bg-slate-500", border: "border-slate-600" },
-  };
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -540,6 +599,46 @@ export default function App() {
     } else {
       setStatus("error");
     }
+  };
+
+  const buyOrEquipFace = (index) => {
+    const selectedFace = shopFaces[index];
+
+    if (selectedFace.owned) {
+      setRobotDesign((prev) => ({ ...prev, face: selectedFace }));
+      return;
+    }
+
+    if (coins < selectedFace.price) return;
+
+    setCoins((prev) => prev - selectedFace.price);
+
+    const updatedFaces = shopFaces.map((face, i) =>
+      i === index ? { ...face, owned: true } : face
+    );
+
+    setShopFaces(updatedFaces);
+    setRobotDesign((prev) => ({ ...prev, face: updatedFaces[index] }));
+  };
+
+  const buyOrEquipColor = (index) => {
+    const selectedColor = shopColors[index];
+
+    if (selectedColor.owned) {
+      setRobotDesign((prev) => ({ ...prev, color: selectedColor }));
+      return;
+    }
+
+    if (coins < selectedColor.price) return;
+
+    setCoins((prev) => prev - selectedColor.price);
+
+    const updatedColors = shopColors.map((color, i) =>
+      i === index ? { ...color, owned: true } : color
+    );
+
+    setShopColors(updatedColors);
+    setRobotDesign((prev) => ({ ...prev, color: updatedColors[index] }));
   };
 
   const renderArrowIcon = (direction, size = 18) => {
@@ -794,8 +893,124 @@ export default function App() {
     );
   };
 
-  const goalReached =
-    robotPos.x === currentLevel.goal.x && robotPos.y === currentLevel.goal.y;
+  if (currentView === "workshop") {
+    return (
+      <div className="min-h-screen bg-slate-800 font-sans p-4 flex flex-col items-center text-white">
+        <div className="w-full max-w-4xl flex justify-between items-center mb-8 mt-4">
+          <button
+            onClick={() => setCurrentView("home")}
+            className="flex items-center gap-2 text-white font-bold bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl shadow-sm border border-slate-600"
+          >
+            <ChevronLeft size={20} />
+            Menú
+          </button>
+
+          <div className="bg-amber-100 text-amber-700 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300">
+            <Hexagon size={20} className="fill-amber-400" /> {coins}
+          </div>
+        </div>
+
+        <div className="w-full max-w-4xl bg-slate-700 rounded-3xl border-4 border-slate-600 shadow-2xl p-6 md:p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-black text-yellow-400 flex items-center justify-center gap-3">
+              <Wrench size={38} />
+              Taller Premium
+            </h1>
+            <p className="text-slate-300 mt-2">
+              Compra y equipa nuevos aspectos para tu Capi-bot.
+            </p>
+          </div>
+
+          <div className="flex justify-center mb-8">
+            <div className="bg-slate-800 w-40 h-40 rounded-3xl border-4 border-slate-900 flex items-center justify-center shadow-inner">
+              <div
+                className={`w-24 h-24 rounded-2xl flex items-center justify-center text-5xl shadow-lg border-b-4 ${robotDesign.color.bg} ${robotDesign.color.border}`}
+              >
+                {robotDesign.face.emoji}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">
+              Cabezas
+            </h2>
+
+            <div className="flex flex-wrap gap-4 justify-center">
+              {shopFaces.map((face, index) => {
+                const isSelected = robotDesign.face.emoji === face.emoji;
+
+                return (
+                  <button
+                    key={face.emoji}
+                    onClick={() => buyOrEquipFace(index)}
+                    className={`relative w-16 h-16 rounded-2xl flex items-center justify-center text-3xl transition-all border-2 ${
+                      isSelected
+                        ? "bg-yellow-400 border-yellow-300 scale-110 shadow-lg"
+                        : face.owned
+                        ? "bg-slate-600 border-slate-500 hover:bg-slate-500"
+                        : "bg-slate-800 border-slate-600 hover:border-amber-400"
+                    }`}
+                  >
+                    {face.emoji}
+
+                    {!face.owned && (
+                      <div className="absolute -bottom-3 bg-slate-900 text-amber-400 text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 border border-slate-700">
+                        <Lock size={10} />
+                        {face.price}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4">
+              Chasis
+            </h2>
+
+            <div className="flex flex-wrap gap-4 justify-center">
+              {shopColors.map((color, index) => {
+                const isSelected = robotDesign.color.name === color.name;
+
+                return (
+                  <button
+                    key={color.name}
+                    onClick={() => buyOrEquipColor(index)}
+                    title={color.name}
+                    className={`relative w-14 h-14 rounded-full border-4 transition-all ${color.bg} ${
+                      isSelected
+                        ? "border-yellow-300 scale-110 shadow-lg"
+                        : color.owned
+                        ? "border-white/20 hover:scale-105"
+                        : "border-slate-800 opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    {!color.owned && (
+                      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-amber-400 text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 border border-slate-700 whitespace-nowrap">
+                        <Lock size={10} />
+                        {color.price}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setCurrentView("home")}
+            className="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black text-xl py-4 rounded-xl shadow-lg transition-transform active:scale-95 flex justify-center items-center gap-2"
+          >
+            <CheckCircle2 size={22} />
+            Volver al menú
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (currentView === "home") {
     return (
@@ -814,7 +1029,10 @@ export default function App() {
             código perfecto.
           </p>
 
-          <div className="bg-slate-800 text-white rounded-2xl p-4 shadow-lg border-2 border-slate-700 flex items-center justify-between mx-auto w-full">
+          <button
+            onClick={() => setCurrentView("workshop")}
+            className="bg-slate-800 text-white rounded-2xl p-4 shadow-lg border-2 border-slate-700 flex items-center justify-between mx-auto w-full hover:scale-[1.01] transition-transform"
+          >
             <div className="flex items-center gap-4">
               <div
                 className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl border-b-2 ${robotDesign.color.bg} ${robotDesign.color.border}`}
@@ -835,7 +1053,7 @@ export default function App() {
             <div className="bg-slate-700 p-2 rounded-full text-slate-300">
               <ChevronLeft size={20} className="rotate-180" />
             </div>
-          </div>
+          </button>
         </header>
 
         <div className="w-full max-w-2xl flex flex-col gap-4">
