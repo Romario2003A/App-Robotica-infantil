@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ShoppingCart,
@@ -27,6 +27,7 @@ import {
 export default function App() {
   const GRID_SIZE = 6;
   const MAX_COMMANDS = 20;
+  const STORAGE_KEY = "academia-capibot-save-v1";
 
   const SECTION_1_LEVELS = [
     {
@@ -341,6 +342,92 @@ export default function App() {
     return SECTION_6_LEVELS;
   };
 
+  const hydrateFaces = (savedFaces) => {
+    if (!Array.isArray(savedFaces)) return INITIAL_FACES;
+    return INITIAL_FACES.map((baseFace) => {
+      const saved = savedFaces.find((face) => face.emoji === baseFace.emoji);
+      return saved ? { ...baseFace, owned: !!saved.owned } : baseFace;
+    });
+  };
+
+  const hydrateColors = (savedColors) => {
+    if (!Array.isArray(savedColors)) return INITIAL_COLORS;
+    return INITIAL_COLORS.map((baseColor) => {
+      const saved = savedColors.find((color) => color.name === baseColor.name);
+      return saved ? { ...baseColor, owned: !!saved.owned } : baseColor;
+    });
+  };
+
+  const getInitialSave = () => {
+    if (typeof window === "undefined") {
+      return {
+        coins: 0,
+        levelStars: {},
+        shopFaces: INITIAL_FACES,
+        shopColors: INITIAL_COLORS,
+        robotDesign: {
+          face: INITIAL_FACES[0],
+          color: INITIAL_COLORS[0],
+        },
+      };
+    }
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return {
+          coins: 0,
+          levelStars: {},
+          shopFaces: INITIAL_FACES,
+          shopColors: INITIAL_COLORS,
+          robotDesign: {
+            face: INITIAL_FACES[0],
+            color: INITIAL_COLORS[0],
+          },
+        };
+      }
+
+      const parsed = JSON.parse(raw);
+      const hydratedFaces = hydrateFaces(parsed.shopFaces);
+      const hydratedColors = hydrateColors(parsed.shopColors);
+
+      const savedFace =
+        hydratedFaces.find((face) => face.emoji === parsed?.robotDesign?.face?.emoji) ||
+        hydratedFaces[0];
+
+      const savedColor =
+        hydratedColors.find((color) => color.name === parsed?.robotDesign?.color?.name) ||
+        hydratedColors[0];
+
+      return {
+        coins: typeof parsed.coins === "number" ? parsed.coins : 0,
+        levelStars:
+          parsed.levelStars && typeof parsed.levelStars === "object"
+            ? parsed.levelStars
+            : {},
+        shopFaces: hydratedFaces,
+        shopColors: hydratedColors,
+        robotDesign: {
+          face: savedFace,
+          color: savedColor,
+        },
+      };
+    } catch {
+      return {
+        coins: 0,
+        levelStars: {},
+        shopFaces: INITIAL_FACES,
+        shopColors: INITIAL_COLORS,
+        robotDesign: {
+          face: INITIAL_FACES[0],
+          color: INITIAL_COLORS[0],
+        },
+      };
+    }
+  };
+
+  const initialSave = getInitialSave();
+
   const [currentView, setCurrentView] = useState("home");
   const [currentSection, setCurrentSection] = useState(1);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
@@ -350,20 +437,65 @@ export default function App() {
   const [pendingLoop, setPendingLoop] = useState(null);
   const [pendingIf, setPendingIf] = useState(null);
 
-  const [coins, setCoins] = useState(0);
-  const [levelStars, setLevelStars] = useState({});
+  const [coins, setCoins] = useState(initialSave.coins);
+  const [levelStars, setLevelStars] = useState(initialSave.levelStars);
   const [earnedStars, setEarnedStars] = useState(0);
   const [earnedCoins, setEarnedCoins] = useState(0);
 
-  const [shopFaces, setShopFaces] = useState(INITIAL_FACES);
-  const [shopColors, setShopColors] = useState(INITIAL_COLORS);
-  const [robotDesign, setRobotDesign] = useState({
-    face: INITIAL_FACES[0],
-    color: INITIAL_COLORS[0],
-  });
+  const [shopFaces, setShopFaces] = useState(initialSave.shopFaces);
+  const [shopColors, setShopColors] = useState(initialSave.shopColors);
+  const [robotDesign, setRobotDesign] = useState(initialSave.robotDesign);
 
   const currentLevels = getLevelsBySection(currentSection);
   const currentLevel = currentLevels[currentLevelIndex];
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const saveData = {
+      coins,
+      levelStars,
+      shopFaces: shopFaces.map((face) => ({
+        emoji: face.emoji,
+        owned: face.owned,
+      })),
+      shopColors: shopColors.map((color) => ({
+        name: color.name,
+        owned: color.owned,
+      })),
+      robotDesign: {
+        face: { emoji: robotDesign.face.emoji },
+        color: { name: robotDesign.color.name },
+      },
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+  }, [coins, levelStars, shopFaces, shopColors, robotDesign]);
+
+  const resetProgress = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    setCoins(0);
+    setLevelStars({});
+    setShopFaces(INITIAL_FACES);
+    setShopColors(INITIAL_COLORS);
+    setRobotDesign({
+      face: INITIAL_FACES[0],
+      color: INITIAL_COLORS[0],
+    });
+    setCurrentView("home");
+    setCurrentSection(1);
+    setCurrentLevelIndex(0);
+    setRobotPos(SECTION_1_LEVELS[0].start);
+    setCommands([]);
+    setPendingLoop(null);
+    setPendingIf(null);
+    setStatus("idle");
+    setEarnedStars(0);
+    setEarnedCoins(0);
+  };
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -905,8 +1037,17 @@ export default function App() {
             Menú
           </button>
 
-          <div className="bg-amber-100 text-amber-700 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300">
-            <Hexagon size={20} className="fill-amber-400" /> {coins}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={resetProgress}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-xl border border-red-500 text-sm"
+            >
+              Borrar progreso
+            </button>
+
+            <div className="bg-amber-100 text-amber-700 font-black px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-amber-300">
+              <Hexagon size={20} className="fill-amber-400" /> {coins}
+            </div>
           </div>
         </div>
 
