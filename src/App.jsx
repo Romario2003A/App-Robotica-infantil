@@ -10,13 +10,17 @@ import {
   Archive,
   Gamepad2,
   Battery,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 
 export default function App() {
   const coins = 0;
   const GRID_SIZE = 6;
 
-  const [robotPos] = useState({ x: 0, y: 2 });
+  const [robotPos, setRobotPos] = useState({ x: 0, y: 2 });
   const goal = { x: 5, y: 2 };
 
   const robotDesign = {
@@ -81,6 +85,28 @@ export default function App() {
     },
   ];
 
+  const moveRobot = (direction) => {
+    setRobotPos((prev) => {
+      let nextX = prev.x;
+      let nextY = prev.y;
+
+      if (direction === "UP") nextY -= 1;
+      if (direction === "DOWN") nextY += 1;
+      if (direction === "LEFT") nextX -= 1;
+      if (direction === "RIGHT") nextX += 1;
+
+      if (nextX < 0 || nextX >= GRID_SIZE || nextY < 0 || nextY >= GRID_SIZE) {
+        return prev;
+      }
+
+      return { x: nextX, y: nextY };
+    });
+  };
+
+  const resetRobot = () => {
+    setRobotPos({ x: 0, y: 2 });
+  };
+
   const renderGrid = () => {
     const cells = [];
 
@@ -88,11 +114,12 @@ export default function App() {
       for (let x = 0; x < GRID_SIZE; x++) {
         const isRobotHere = robotPos.x === x && robotPos.y === y;
         const isGoalHere = goal.x === x && goal.y === y;
+        const isGoalReached = robotPos.x === goal.x && robotPos.y === goal.y;
 
         cells.push(
           <div
             key={`${x}-${y}`}
-            className={`w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg flex items-center justify-center text-xl sm:text-2xl relative
+            className={`w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg flex items-center justify-center text-xl sm:text-2xl relative transition-all
               ${
                 isGoalHere && !isRobotHere
                   ? "bg-green-100 border-green-400"
@@ -105,7 +132,9 @@ export default function App() {
 
             {isRobotHere && (
               <div
-                className={`absolute z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-md border-b-4 ${robotDesign.color.bg} ${robotDesign.color.border}`}
+                className={`absolute z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-md border-b-4 ${robotDesign.color.bg} ${robotDesign.color.border} ${
+                  isGoalReached ? "scale-110" : ""
+                }`}
               >
                 {robotDesign.face.emoji}
               </div>
@@ -141,6 +170,8 @@ export default function App() {
       </div>
     );
   };
+
+  const goalReached = robotPos.x === goal.x && robotPos.y === goal.y;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans p-4 flex flex-col items-center">
@@ -188,10 +219,59 @@ export default function App() {
         </h2>
 
         <div
-          className="grid gap-2 justify-center"
+          className="grid gap-2 justify-center mb-6"
           style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}
         >
           {renderGrid()}
+        </div>
+
+        <div className="flex flex-col items-center gap-3">
+          <div className="grid grid-cols-2 gap-3 w-full max-w-md">
+            <button
+              onClick={() => moveRobot("UP")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
+            >
+              <ArrowUp size={28} />
+              Arriba
+            </button>
+
+            <button
+              onClick={() => moveRobot("DOWN")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
+            >
+              <ArrowDown size={28} />
+              Abajo
+            </button>
+
+            <button
+              onClick={() => moveRobot("LEFT")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
+            >
+              <ArrowLeft size={28} />
+              Izquierda
+            </button>
+
+            <button
+              onClick={() => moveRobot("RIGHT")}
+              className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center transition-transform active:scale-95"
+            >
+              <ArrowRight size={28} />
+              Derecha
+            </button>
+          </div>
+
+          <button
+            onClick={resetRobot}
+            className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-3 rounded-xl border border-slate-300"
+          >
+            Reiniciar posición
+          </button>
+
+          {goalReached && (
+            <div className="bg-green-100 border-2 border-green-300 text-green-800 font-bold px-4 py-3 rounded-xl mt-2">
+              ¡Llegaste a la meta!
+            </div>
+          )}
         </div>
       </section>
 
