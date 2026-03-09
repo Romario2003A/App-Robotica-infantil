@@ -17,6 +17,7 @@ import {
   Trash2,
   RotateCcw,
   HelpCircle,
+  Terminal,
 } from "lucide-react";
 
 export default function App() {
@@ -488,6 +489,164 @@ export default function App() {
     return null;
   };
 
+  const formatMoveName = (direction) => {
+    if (direction === "UP") return "moverArriba";
+    if (direction === "DOWN") return "moverAbajo";
+    if (direction === "LEFT") return "moverIzquierda";
+    if (direction === "RIGHT") return "moverDerecha";
+    return "mover";
+  };
+
+  const getModuleColor = () => {
+    if (currentSection === 1) return "text-indigo-400";
+    if (currentSection === 2) return "text-purple-400";
+    if (currentSection === 3) return "text-orange-400";
+    if (currentSection === 4) return "text-pink-400";
+    if (currentSection === 5) return "text-teal-400";
+    return "text-red-400";
+  };
+
+  const renderTerminalCode = () => {
+    const lines = [];
+    let lineNumber = 1;
+
+    const pushLine = (content, extraClass = "") => {
+      lines.push(
+        <div
+          key={`line-${lineNumber}`}
+          className={`flex items-start gap-3 px-3 py-0.5 ${extraClass}`}
+        >
+          <span className="text-slate-500 w-6 text-right select-none">
+            {lineNumber}
+          </span>
+          <div className="flex-1">{content}</div>
+        </div>
+      );
+      lineNumber += 1;
+    };
+
+    pushLine(
+      <>
+        <span className="text-purple-400">void</span>{" "}
+        <span className={`${getModuleColor()} font-semibold`}>programa</span>
+        <span className="text-slate-300">() {"{"}</span>
+      </>
+    );
+
+    if (commands.length === 0) {
+      pushLine(
+        <span className="text-slate-500 italic">
+          // Esperando instrucciones...
+        </span>,
+        "pl-4"
+      );
+    }
+
+    commands.forEach((command) => {
+      if (command.type === "single") {
+        pushLine(
+          <>
+            <span className="text-blue-400">robot</span>
+            <span className="text-slate-300">.</span>
+            <span className="text-yellow-300">
+              {formatMoveName(command.direction)}
+            </span>
+            <span className="text-slate-300">();</span>
+          </>,
+          "pl-4"
+        );
+      }
+
+      if (command.type === "loop") {
+        pushLine(
+          <>
+            <span className="text-purple-400">for</span>{" "}
+            <span className="text-slate-300">(</span>
+            <span className="text-blue-400">let</span>{" "}
+            <span className="text-slate-200">i</span>
+            <span className="text-slate-300"> = </span>
+            <span className="text-orange-300">0</span>
+            <span className="text-slate-300">; i &lt; </span>
+            <span className="text-orange-300">{command.times}</span>
+            <span className="text-slate-300">; i++) {"{"}</span>
+          </>,
+          "pl-4"
+        );
+
+        pushLine(
+          <>
+            <span className="text-blue-400">robot</span>
+            <span className="text-slate-300">.</span>
+            <span className="text-yellow-300">
+              {formatMoveName(command.direction)}
+            </span>
+            <span className="text-slate-300">();</span>
+          </>,
+          "pl-8"
+        );
+
+        pushLine(<span className="text-slate-300">{"}"}</span>, "pl-4");
+      }
+
+      if (command.type === "if") {
+        pushLine(
+          <>
+            <span className="text-purple-400">if</span>{" "}
+            <span className="text-slate-300">(</span>
+            <span className="text-blue-400">sensor</span>
+            <span className="text-slate-300">.</span>
+            <span className="text-yellow-300">hayObstaculo</span>
+            <span className="text-slate-300">(</span>
+            <span className="text-green-300">
+              "{command.lookDir.toLowerCase()}"
+            </span>
+            <span className="text-slate-300">)) {"{"}</span>
+          </>,
+          "pl-4"
+        );
+
+        pushLine(
+          <>
+            <span className="text-blue-400">robot</span>
+            <span className="text-slate-300">.</span>
+            <span className="text-yellow-300">
+              {formatMoveName(command.actionDir)}
+            </span>
+            <span className="text-slate-300">();</span>
+          </>,
+          "pl-8"
+        );
+
+        pushLine(
+          <>
+            <span className="text-slate-300">{"} "}</span>
+            <span className="text-purple-400">else</span>
+            <span className="text-slate-300"> {"{"}</span>
+          </>,
+          "pl-4"
+        );
+
+        pushLine(
+          <>
+            <span className="text-blue-400">robot</span>
+            <span className="text-slate-300">.</span>
+            <span className="text-yellow-300">
+              {formatMoveName(command.lookDir)}
+            </span>
+            <span className="text-slate-300">();</span>
+          </>,
+          "pl-8"
+        );
+
+        pushLine(<span className="text-slate-300">{"}"}</span>, "pl-4");
+      }
+    });
+
+    pushLine(<span className="text-slate-300">{"}"}</span>);
+
+    return lines;
+  };
+
   const renderGrid = () => {
     const cells = [];
 
@@ -674,6 +833,31 @@ export default function App() {
             {renderGrid()}
           </div>
 
+          <div className="w-full mt-2 mb-6">
+            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+              <Terminal size={16} />
+              Traductor de código
+            </h4>
+
+            <div className="bg-[#1e1e1e] rounded-2xl overflow-hidden border border-slate-700 shadow-inner">
+              <div className="bg-[#2d2d2d] px-4 py-2 flex items-center justify-between border-b border-slate-700">
+                <div className="flex gap-2">
+                  <span className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <span className="w-3 h-3 rounded-full bg-green-500" />
+                </div>
+                <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">
+                  programa.capibot
+                </span>
+                <div className="w-10" />
+              </div>
+
+              <div className="font-mono text-sm py-3 text-slate-200 max-h-64 overflow-y-auto">
+                {renderTerminalCode()}
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-3 flex-wrap">
             <button
               onClick={resetLevel}
@@ -686,7 +870,9 @@ export default function App() {
 
             <button
               onClick={nextLevel}
-              disabled={!goalReached || currentLevelIndex === currentLevels.length - 1}
+              disabled={
+                !goalReached || currentLevelIndex === currentLevels.length - 1
+              }
               className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-xl border border-green-600 disabled:opacity-50"
             >
               Siguiente nivel
