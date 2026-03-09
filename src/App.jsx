@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Trash2,
   RotateCcw,
+  HelpCircle,
 } from "lucide-react";
 
 export default function App() {
@@ -77,7 +78,7 @@ export default function App() {
     {
       id: 3,
       title: "Decisiones (Sensor)",
-      desc: "Haz que tu robot evite rocas fantasma.",
+      desc: "Haz que tu robot tome decisiones simples.",
       icon: Cpu,
       bgClass: "bg-orange-100",
       textClass: "text-orange-600",
@@ -86,7 +87,7 @@ export default function App() {
     {
       id: 4,
       title: "Funciones (Trucos)",
-      desc: "Graba combinaciones para saltar muros.",
+      desc: "Graba combinaciones para reutilizarlas.",
       icon: Sparkles,
       bgClass: "bg-pink-100",
       textClass: "text-pink-600",
@@ -95,7 +96,7 @@ export default function App() {
     {
       id: 5,
       title: "Variables (Mochila)",
-      desc: "Recolecta para apagar láseres.",
+      desc: "Recolecta objetos y desbloquea caminos.",
       icon: Archive,
       bgClass: "bg-teal-100",
       textClass: "text-teal-600",
@@ -104,7 +105,7 @@ export default function App() {
     {
       id: 6,
       title: "Control Remoto",
-      desc: "Pilota en vivo y esquiva obstáculos rápidos.",
+      desc: "Pilota el robot en vivo.",
       icon: Gamepad2,
       bgClass: "bg-red-100",
       textClass: "text-red-600",
@@ -118,6 +119,7 @@ export default function App() {
   const [commands, setCommands] = useState([]);
   const [status, setStatus] = useState("idle");
   const [pendingLoop, setPendingLoop] = useState(null);
+  const [pendingIf, setPendingIf] = useState(null);
 
   const currentLevel = levels[currentLevelIndex];
 
@@ -159,14 +161,71 @@ export default function App() {
     return true;
   };
 
-  const addCommand = (direction) => {
+  const resetLevel = () => {
+    setRobotPos(currentLevel.start);
+    setCommands([]);
+    setPendingLoop(null);
+    setPendingIf(null);
+    setStatus("idle");
+  };
+
+  const enterGame = (levelIndex = 0) => {
+    setCurrentLevelIndex(levelIndex);
+    setRobotPos(levels[levelIndex].start);
+    setCommands([]);
+    setPendingLoop(null);
+    setPendingIf(null);
+    setStatus("idle");
+    setCurrentView("game");
+  };
+
+  const goHome = () => {
+    setCurrentView("home");
+  };
+
+  const nextLevel = () => {
+    const nextIndex = currentLevelIndex + 1;
+
+    if (nextIndex < levels.length) {
+      setCurrentLevelIndex(nextIndex);
+      setRobotPos(levels[nextIndex].start);
+      setCommands([]);
+      setPendingLoop(null);
+      setPendingIf(null);
+      setStatus("idle");
+    }
+  };
+
+  const addDirectionCommand = (direction) => {
     if (status === "running") return;
     if (commands.length >= 20) return;
+
+    if (pendingIf) {
+      if (!pendingIf.lookDir) {
+        setPendingIf({ lookDir: direction });
+        return;
+      }
+
+      setCommands((prev) => [
+        ...prev,
+        {
+          type: "if",
+          lookDir: pendingIf.lookDir,
+          actionDir: direction,
+        },
+      ]);
+      setPendingIf(null);
+      return;
+    }
 
     if (pendingLoop) {
       setCommands((prev) => [
         ...prev,
-        { type: "loop", times: pendingLoop, direction },
+        {
+          type: "loop",
+          times: pendingLoop,
+          direction,
+        },
       ]);
       setPendingLoop(null);
       return;
@@ -184,38 +243,8 @@ export default function App() {
     if (status === "running") return;
     setCommands([]);
     setPendingLoop(null);
-  };
-
-  const resetLevel = () => {
-    setRobotPos(currentLevel.start);
-    setCommands([]);
-    setPendingLoop(null);
+    setPendingIf(null);
     setStatus("idle");
-  };
-
-  const enterGame = (levelIndex = 0) => {
-    setCurrentLevelIndex(levelIndex);
-    setRobotPos(levels[levelIndex].start);
-    setCommands([]);
-    setPendingLoop(null);
-    setStatus("idle");
-    setCurrentView("game");
-  };
-
-  const goHome = () => {
-    setCurrentView("home");
-  };
-
-  const nextLevel = () => {
-    const nextIndex = currentLevelIndex + 1;
-
-    if (nextIndex < levels.length) {
-      setCurrentLevelIndex(nextIndex);
-      setRobotPos(levels[nextIndex].start);
-      setCommands([]);
-      setPendingLoop(null);
-      setStatus("idle");
-    }
   };
 
   const runProgram = async () => {
@@ -229,13 +258,8 @@ export default function App() {
     await sleep(400);
 
     for (const command of commands) {
-      const steps =
-        command.type === "loop"
-          ? Array.from({ length: command.times }, () => command.direction)
-          : [command.direction];
-
-      for (const step of steps) {
-        const nextPosition = getNextPosition(currentPosition, step);
+      if (command.type === "single") {
+        const nextPosition = getNextPosition(currentPosition, command.direction);
 
         if (!isValidMove(nextPosition)) {
           setStatus("error");
@@ -244,7 +268,44 @@ export default function App() {
 
         currentPosition = nextPosition;
         setRobotPos(currentPosition);
+        await sleep(300);
+      }
 
+      if (command.type === "loop") {
+        for (let i = 0; i < command.times; i++) {
+          const nextPosition = getNextPosition(
+            currentPosition,
+            command.direction
+          );
+
+          if (!isValidMove(nextPosition)) {
+            setStatus("error");
+            return;
+          }
+
+          currentPosition = nextPosition;
+          setRobotPos(currentPosition);
+          await sleep(300);
+        }
+      }
+
+      if (command.type === "if") {
+        const lookPosition = getNextPosition(currentPosition, command.lookDir);
+        const obstacleAhead = !isValidMove(lookPosition);
+
+        const chosenDirection = obstacleAhead
+          ? command.actionDir
+          : command.lookDir;
+
+        const nextPosition = getNextPosition(currentPosition, chosenDirection);
+
+        if (!isValidMove(nextPosition)) {
+          setStatus("error");
+          return;
+        }
+
+        currentPosition = nextPosition;
+        setRobotPos(currentPosition);
         await sleep(300);
       }
     }
@@ -281,14 +342,13 @@ export default function App() {
         cells.push(
           <div
             key={`${x}-${y}`}
-            className={`w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg flex items-center justify-center text-xl sm:text-2xl relative transition-all
-              ${
-                isObstacleHere
-                  ? "bg-slate-700 border-slate-800"
-                  : isGoalHere && !isRobotHere
-                  ? "bg-green-100 border-green-400"
-                  : "bg-slate-100 border-slate-300"
-              }`}
+            className={`w-12 h-12 sm:w-14 sm:h-14 border-2 rounded-lg flex items-center justify-center text-xl sm:text-2xl relative transition-all ${
+              isObstacleHere
+                ? "bg-slate-700 border-slate-800"
+                : isGoalHere && !isRobotHere
+                ? "bg-green-100 border-green-400"
+                : "bg-slate-100 border-slate-300"
+            }`}
           >
             {isObstacleHere && "🪨"}
 
@@ -353,8 +413,8 @@ export default function App() {
           </h1>
 
           <p className="text-lg text-slate-600 font-medium max-w-md mx-auto mb-6">
-            Elige tu módulo y gana tuercas doradas completando niveles con código
-            perfecto.
+            Elige tu módulo y gana tuercas doradas completando niveles con
+            código perfecto.
           </p>
 
           <div className="bg-slate-800 text-white rounded-2xl p-4 shadow-lg border-2 border-slate-700 flex items-center justify-between mx-auto w-full">
@@ -428,7 +488,9 @@ export default function App() {
 
           <div
             className="grid gap-2 justify-center mb-6"
-            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}
+            style={{
+              gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
+            }}
           >
             {renderGrid()}
           </div>
@@ -489,19 +551,25 @@ export default function App() {
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 <button
-                  onClick={() => setPendingLoop(2)}
+                  onClick={() => {
+                    if (status !== "running") setPendingLoop(2);
+                  }}
                   className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
                 >
                   x2
                 </button>
                 <button
-                  onClick={() => setPendingLoop(3)}
+                  onClick={() => {
+                    if (status !== "running") setPendingLoop(3);
+                  }}
                   className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
                 >
                   x3
                 </button>
                 <button
-                  onClick={() => setPendingLoop(4)}
+                  onClick={() => {
+                    if (status !== "running") setPendingLoop(4);
+                  }}
                   className="bg-purple-200 hover:bg-purple-300 text-purple-900 font-bold py-2 rounded-lg"
                 >
                   x4
@@ -510,9 +578,42 @@ export default function App() {
             )}
           </div>
 
+          <div className="mb-4 bg-orange-50 p-3 rounded-xl border-2 border-orange-200">
+            <h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
+              <Cpu size={16} />
+              Sensor
+            </h4>
+
+            {pendingIf ? (
+              <div className="text-orange-700 font-bold text-sm text-center bg-white p-2 rounded-lg border border-orange-200">
+                {!pendingIf.lookDir
+                  ? "1. Elige hacia dónde mirar"
+                  : "2. Elige hacia dónde esquivar"}
+                <button
+                  onClick={() => setPendingIf(null)}
+                  className="block mx-auto mt-1 text-red-500 text-xs underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (status !== "running" && commands.length < 20) {
+                    setPendingIf({ lookDir: null });
+                  }
+                }}
+                className="w-full bg-orange-200 hover:bg-orange-300 text-orange-900 font-bold py-2 rounded-lg flex items-center justify-center gap-2"
+              >
+                <HelpCircle size={16} />
+                Crear condición
+              </button>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <button
-              onClick={() => addCommand("UP")}
+              onClick={() => addDirectionCommand("UP")}
               className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
             >
               <ArrowUp size={28} />
@@ -520,7 +621,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => addCommand("DOWN")}
+              onClick={() => addDirectionCommand("DOWN")}
               className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
             >
               <ArrowDown size={28} />
@@ -528,7 +629,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => addCommand("LEFT")}
+              onClick={() => addDirectionCommand("LEFT")}
               className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
             >
               <ArrowLeft size={28} />
@@ -536,7 +637,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => addCommand("RIGHT")}
+              onClick={() => addDirectionCommand("RIGHT")}
               className="bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-800 rounded-xl p-3 font-bold flex flex-col items-center justify-center"
             >
               <ArrowRight size={28} />
@@ -573,6 +674,8 @@ export default function App() {
                     className={`min-w-10 h-10 px-2 rounded-lg border-2 flex items-center justify-center gap-1 shadow-sm ${
                       command.type === "loop"
                         ? "bg-purple-100 border-purple-300 text-purple-800"
+                        : command.type === "if"
+                        ? "bg-orange-100 border-orange-300 text-orange-800"
                         : "bg-white border-slate-300"
                     }`}
                     title="Eliminar comando"
@@ -580,7 +683,22 @@ export default function App() {
                     {command.type === "loop" && (
                       <span className="text-xs font-black">x{command.times}</span>
                     )}
-                    {renderArrowIcon(command.direction)}
+
+                    {command.type === "if" && (
+                      <span className="text-xs font-black">IF</span>
+                    )}
+
+                    {command.type === "single" && renderArrowIcon(command.direction)}
+
+                    {command.type === "loop" && renderArrowIcon(command.direction)}
+
+                    {command.type === "if" && (
+                      <>
+                        {renderArrowIcon(command.lookDir, 14)}
+                        <span className="text-xs">→</span>
+                        {renderArrowIcon(command.actionDir, 14)}
+                      </>
+                    )}
                   </button>
                 ))}
               </div>
