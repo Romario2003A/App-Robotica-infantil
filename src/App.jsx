@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowUp,
   ArrowDown,
@@ -29,14 +29,29 @@ import {
   ShoppingCart,
   Info,
   ChevronRight,
+  Music,
+  Music4,
 } from 'lucide-react';
 
 // --- MOTOR DE SONIDO ---
+let sharedAudioContext = null;
+
 const playSound = (type) => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
-    const ctx = new AudioContext();
+    
+    // Crear el contexto solo una vez y reutilizarlo
+    if (!sharedAudioContext) {
+      sharedAudioContext = new AudioContext();
+    }
+    const ctx = sharedAudioContext;
+    
+    // Los navegadores pausan el audio por defecto, hay que reanudarlo tras interactuar
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
     osc.connect(gainNode);
@@ -252,6 +267,72 @@ export default function App() {
   const [earnedStars, setEarnedStars] = useState(0);
   const [earnedCoins, setEarnedCoins] = useState(0);
   const [robotDesign, setRobotDesign] = useState({ face: ROBOT_FACES[0], color: ROBOT_COLORS[0] });
+
+  // --- SISTEMA DE MÚSICA DE FONDO ---
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  
+  // Música para los menús (Home, Tienda, etc.)
+  const [bgMusic] = useState(() => {
+    if (typeof Audio !== "undefined") {
+      const audio = new Audio('/musica.mp3');
+      audio.loop = true;
+      audio.volume = 0.2;
+      return audio;
+    }
+    return null;
+  });
+
+  // Música para los niveles (Juego)
+  const [levelMusic] = useState(() => {
+    if (typeof Audio !== "undefined") {
+      // Usaremos este nuevo archivo para los niveles
+      const audio = new Audio('/musica-niveles.mp3');
+      audio.loop = true;
+      audio.volume = 0.15; // Un poco más baja para que destaquen los efectos de sonido
+      return audio;
+    }
+    return null;
+  });
+
+  // Controlar qué suena y cuándo se pausa al cambiar de vistas
+  useEffect(() => {
+    if (!bgMusic || !levelMusic) return;
+
+    const viewsMenu = ['home', 'workshop', 'about'];
+    
+    if (isMusicPlaying) {
+      if (viewsMenu.includes(currentView)) {
+        levelMusic.pause();
+        bgMusic.play().catch(e => console.log('Autoplay bloqueado', e));
+      } else if (currentView === 'game') {
+        bgMusic.pause();
+        levelMusic.play().catch(e => console.log('Autoplay bloqueado', e));
+      } else {
+        // En vistas como onboarding o landing, mantenemos en pausa por defecto
+        bgMusic.pause();
+        levelMusic.pause();
+      }
+    } else {
+      bgMusic.pause();
+      levelMusic.pause();
+    }
+  }, [currentView, isMusicPlaying, bgMusic, levelMusic]);
+
+  const toggleMusic = () => {
+    playSound('click');
+    if (isMusicPlaying) {
+      if (bgMusic) bgMusic.pause();
+      if (levelMusic) levelMusic.pause();
+    } else {
+      if (currentView === 'game' && levelMusic) {
+        levelMusic.play().catch(e => console.error("Error al reproducir:", e));
+      } else if (bgMusic) {
+        bgMusic.play().catch(e => console.error("Error al reproducir:", e));
+      }
+    }
+    setIsMusicPlaying(!isMusicPlaying);
+  };
+  // ----------------------------------
 
   const currentLevels = getLevelsBySection(currentSection);
   const level = currentLevels[currentLevelIndex];
@@ -816,7 +897,23 @@ export default function App() {
         <div className="w-32 h-32 bg-white/10 rounded-[2rem] flex items-center justify-center text-6xl mb-8 animate-bounce">{robotDesign.face.emoji}</div>
         <h1 className="text-6xl font-black text-white mb-4">LogiRom</h1>
         <p className="text-slate-400 text-lg mb-12">Domina el pensamiento computacional.</p>
-        <button onClick={() => { playSound('click'); setCurrentView('home'); }} className="px-10 py-5 bg-indigo-600 text-white font-black text-xl rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all">ENTRAR A LA ACADEMIA</button>
+        <button 
+          onClick={() => { 
+            playSound('click'); 
+            
+            // Forzamos el play AQUÍ MISMO en el evento de clic. 
+            // Esto evita que el navegador bloquee la música.
+            if (bgMusic) {
+              bgMusic.play().catch(e => console.error("Error de audio:", e));
+            }
+            
+            setIsMusicPlaying(true); 
+            setCurrentView('home'); 
+          }} 
+          className="px-10 py-5 bg-indigo-600 text-white font-black text-xl rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all"
+        >
+          ENTRAR A LA ACADEMIA
+        </button>
         <div className="absolute bottom-8 text-slate-600 text-xs font-bold uppercase">Creado por Guedson Romario</div>
       </div>
     );
@@ -950,6 +1047,12 @@ export default function App() {
     return (
       <div className="min-h-[100dvh] bg-slate-50 p-4 flex flex-col items-center">
         <button onClick={() => setCurrentView('about')} className="absolute left-4 top-4 bg-white p-2.5 rounded-full shadow border border-slate-100 text-indigo-600"><Info size={22} /></button>
+        
+        {/* Botón de música agregado al lado de los créditos/info */}
+        <button onClick={toggleMusic} className="absolute left-16 top-4 bg-white p-2.5 rounded-full shadow border border-slate-100 text-indigo-600">
+          {isMusicPlaying ? <Music size={22} /> : <div className="relative"><Music size={22} className="opacity-50" /><div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-500 -rotate-45"></div></div>}
+        </button>
+
         <div className="absolute right-4 top-4 bg-amber-50 text-amber-600 font-black px-4 py-1.5 rounded-full border border-amber-200 flex items-center gap-1.5"><Hexagon size={16} className="fill-amber-400" /> {coins}</div>
 
         <header className="text-center mt-12 mb-10 w-full max-w-2xl">
@@ -998,7 +1101,15 @@ export default function App() {
       )}
 
       <div className="w-full max-w-5xl flex justify-between items-center mb-6">
-        <button onClick={() => setCurrentView('home')} className="flex items-center gap-2 text-slate-600 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100"><ChevronLeft size={20} /> Mapa</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setCurrentView('home')} className="flex items-center gap-2 text-slate-600 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100"><ChevronLeft size={20} /> Mapa</button>
+          
+          {/* Botón de música en la cabecera de los niveles */}
+          <button onClick={toggleMusic} className="flex items-center justify-center w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 text-indigo-600">
+            {isMusicPlaying ? <Music size={20} /> : <div className="relative"><Music size={20} className="opacity-50" /><div className="absolute top-1/2 left-0 w-full h-0.5 bg-red-500 -rotate-45"></div></div>}
+          </button>
+        </div>
+        
         <div className="text-right">
           <h1 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight leading-none">Módulo {currentSection}</h1>
           <p className="text-[10px] sm:text-sm text-indigo-500 font-bold">Nivel {currentLevelIndex + 1}: {level.title.split(': ')[1]}</p>
